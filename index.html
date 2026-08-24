@@ -75,7 +75,7 @@
   }
   .tab-btn {
     flex: 1;
-    padding: 10px 12px;
+    padding: 11px 12px;
     font-family: 'Kanit', sans-serif;
     font-size: 13.5px;
     font-weight: 600;
@@ -90,6 +90,7 @@
     justify-content: center;
     gap: 6px;
     -webkit-tap-highlight-color: transparent;
+    user-select: none;
   }
   .tab-btn.active {
     background: var(--card);
@@ -150,6 +151,7 @@
     position:relative;
     overflow:hidden;
     -webkit-tap-highlight-color: transparent;
+    user-select: none;
   }
   .check-btn:hover{ transform:translateY(-1px); }
   .check-btn:active{ transform:translateY(0px) scale(.99); }
@@ -163,10 +165,9 @@
     display:none;
   }
   .check-btn.loading .spin{ display:inline-block; }
-  .check-btn.loading .btn-txt::after{ content:"กำลังสแกน…"; }
-  .check-btn .btn-txt::after{ content:"ตรวจสอบ"; }
-  .check-btn .btn-txt{ font-size:0; }
-  .check-btn .btn-txt::after{ font-size:15.5px; }
+  .check-btn.loading .btn-txt-label{ display:none; }
+  .check-btn.loading .btn-txt-loading{ display:inline; }
+  .check-btn .btn-txt-loading{ display:none; }
 
   @keyframes spin{ to{ transform:rotate(360deg); } }
 
@@ -269,10 +270,10 @@
 
     <!-- Navigation Bar -->
     <div class="nav-tabs">
-      <button class="tab-btn active" id="tabCheck" type="button" onclick="switchTab('check')">
+      <button class="tab-btn active" id="tabCheck" type="button">
         🔍 ตรวจสอบรายบุคคล
       </button>
-      <button class="tab-btn" id="tabDash" type="button" onclick="switchTab('dash')">
+      <button class="tab-btn" id="tabDash" type="button">
         📊 สถิติและภาพรวมระบบ
       </button>
     </div>
@@ -301,9 +302,10 @@
         </div>
         <div class="hint">ลองพิมพ์ <code>ธณกร</code>, <code>นรินทร์</code> หรือ <code>ปาลิดา</code> เพื่อดูตัวอย่างผลลัพธ์</div>
 
-        <button class="check-btn" id="checkBtn" type="button" onclick="runCheck()">
+        <button class="check-btn" id="checkBtn" type="button">
           <span class="spin"></span>
-          <span class="btn-txt"></span>
+          <span class="btn-txt-label">ตรวจสอบ</span>
+          <span class="btn-txt-loading">กำลังสแกน…</span>
         </button>
 
         <div class="result-zone" id="resultZone">
@@ -384,176 +386,171 @@
 </div>
 
 <script>
-// Tab Switching Function
-window.switchTab = function(tabName) {
+document.addEventListener('DOMContentLoaded', function() {
   var btnCheck = document.getElementById('tabCheck');
   var btnDash = document.getElementById('tabDash');
   var paneCheck = document.getElementById('paneCheck');
   var paneDash = document.getElementById('paneDash');
-
-  if (!btnCheck || !btnDash || !paneCheck || !paneDash) return;
-
-  if (tabName === 'check') {
-    btnCheck.classList.add('active');
-    btnDash.classList.remove('active');
-    paneCheck.classList.add('active');
-    paneDash.classList.remove('active');
-  } else {
-    btnDash.classList.add('active');
-    btnCheck.classList.remove('active');
-    paneDash.classList.add('active');
-    paneCheck.classList.remove('active');
-  }
-};
-
-// mock dataset
-var DB = {
-  "ธณกร": { name:"ธณกร", score:0.08, success:12, failed:0 },
-  "นรินทร์": { name:"นรินทร์", score:0.62, success:5,  failed:3 },
-  "ปาลิดา": { name:"ปาลิดา", score:0.91, success:2,  failed:6 }
-};
-
-function levelOf(score){
-  if(score >= 0.8) return "high";
-  if(score >= 0.5) return "mid";
-  return "low";
-}
-
-var META = {
-  low:  { 
-    label:"เสี่ยงต่ำ", icon:"✅", color:"var(--low)", soft:"var(--low-soft)",
-    note:"ที่อยู่ตรวจสอบแล้ว ไว้ใจได้ ให้บริการตามปกติ",
-    factors: [
-      "🟢 ไม่พบประวัติปฏิเสธการรับพัสดุในระบบ",
-      "🟢 อัตราการจัดส่งสำเร็จสูงกว่า 90%"
-    ],
-    action: "✅ ให้บริการตามปกติ (รองรับบริการเก็บเงินปลายทาง COD)"
-  },
-  mid:  { 
-    label:"เสี่ยงกลาง", icon:"⚡", color:"var(--mid)", soft:"var(--mid-soft)",
-    note:"มีปัญหาบางครั้ง ควรเฝ้าระวังและตรวจสอบเพิ่มเติมก่อนจัดส่ง",
-    factors: [
-      "🟡 มีประวัติปฏิเสธรับพัสดุ 1-3 ครั้งในช่วง 6 เดือนล่าสุด",
-      "🟡 มีความสุ่มเสี่ยงเนื่องจากยอดสั่งซื้อค่อนข้างสูง"
-    ],
-    action: "⚠️ โทรยืนยันคำสั่งซื้อก่อนจัดส่ง หรือขอเก็บมัดจำบางส่วน"
-  },
-  high: { 
-    label:"เสี่ยงสูง", icon:"⚠️", color:"var(--high)", soft:"var(--high-soft)",
-    note:"มีประวัติปัญหาการจัดส่งซ้ำหลายครั้ง แนะนำยืนยันตัวตนก่อนจัดส่ง",
-    factors: [
-      "🔴 อัตราการตีกลับ/ปฏิเสธสินค้าสูงเกิน 50%",
-      "🔴 เคยปฏิเสธการรับพัสดุติดต่อกันใน 2 ออเดอร์ล่าสุด"
-    ],
-    action: "🚫 ปิดบริการเก็บเงินปลายทาง (COD) แนะนำให้โอนเงินเต็มจำนวนก่อนจัดส่ง"
-  }
-};
-
-var apiUrlInput = document.getElementById('apiUrl');
-var apiStatus = document.getElementById('apiStatus');
-
-try {
-  if (apiUrlInput) {
-    apiUrlInput.value = localStorage.getItem('riskApiUrl') || "";
-  }
-} catch(e) {}
-
-updateApiStatus();
-
-if (apiUrlInput) {
-  apiUrlInput.addEventListener('input', function() {
-    try {
-      localStorage.setItem('riskApiUrl', apiUrlInput.value.trim());
-    } catch(e) {}
-    updateApiStatus();
-  });
-}
-
-function updateApiStatus(){
-  if (!apiUrlInput || !apiStatus) return;
-  var url = apiUrlInput.value.trim();
-  if(!url){
-    apiStatus.textContent = "ใช้ mock data";
-    apiStatus.style.color = "#a8a6a0";
-  } else {
-    apiStatus.textContent = "เชื่อมต่อ API แล้ว";
-    apiStatus.style.color = "var(--low)";
-  }
-}
-
-async function fetchFromApi(baseUrl, receiver){
-  var url = baseUrl.replace(/\/+$/,'') + '/predict';
-  var res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ receiver: receiver })
-  });
-  if(!res.ok) throw new Error('API error ' + res.status);
-  var data = await res.json();
-  return {
-    name: data.name,
-    score: data.score,
-    level: data.level,
-    isNew: data.is_new,
-    success: data.total_deliveries - data.failed_deliveries,
-    failed: data.failed_deliveries,
-    total: data.total_deliveries,
-    factors: data.factors,
-    action: data.action,
-    fromApi: true
-  };
-}
-
-function mockLookup(id){
-  var rec = DB[id] || {
-    name: id, score: Math.random()*0.5, success: Math.floor(Math.random()*8),
-    failed: Math.floor(Math.random()*2)
-  };
-  return {
-    name: rec.name, score: rec.score, level: levelOf(rec.score),
-    isNew: !DB[id], success: rec.success, failed: rec.failed,
-    total: rec.success + rec.failed,
-    fromApi: false
-  };
-}
-
-window.runCheck = async function(){
-  var btn = document.getElementById('checkBtn');
+  var apiUrlInput = document.getElementById('apiUrl');
+  var apiStatus = document.getElementById('apiStatus');
+  var checkBtn = document.getElementById('checkBtn');
   var custInput = document.getElementById('custId');
-  var card = document.getElementById('resultCard');
-  var apiBase = apiUrlInput ? apiUrlInput.value.trim() : "";
-  var id = (custInput && custInput.value.trim()) ? custInput.value.trim() : "ธณกร";
 
-  if(!btn || !card) return;
-
-  card.classList.remove('show');
-  btn.classList.add('loading');
-  btn.disabled = true;
-
-  var result;
-  try{
-    if(apiBase){
-      result = await fetchFromApi(apiBase, id);
-    } else {
-      await new Promise(function(r){ setTimeout(r, 600); });
-      result = mockLookup(id);
-    }
-  } catch(err){
-    console.warn('เรียก API ไม่สำเร็จ ใช้ mock data แทน:', err);
-    await new Promise(function(r){ setTimeout(r, 300); });
-    result = mockLookup(id);
-    if(apiStatus){
-      apiStatus.textContent = "เชื่อมต่อไม่ได้ — ใช้ mock data";
-      apiStatus.style.color = "var(--high)";
-    }
+  // Tab Switching Event Listeners
+  if (btnCheck) {
+    btnCheck.addEventListener('click', function() {
+      btnCheck.classList.add('active');
+      btnDash.classList.remove('active');
+      paneCheck.classList.add('active');
+      paneDash.classList.remove('active');
+    });
   }
 
-  var level = result.level;
-  var m = META[level];
+  if (btnDash) {
+    btnDash.addEventListener('click', function() {
+      btnDash.classList.add('active');
+      btnCheck.classList.remove('active');
+      paneDash.classList.add('active');
+      paneCheck.classList.remove('active');
+    });
+  }
 
-  document.getElementById('riskIcon').style.background = m.soft;
-  document.getElementById('riskIcon').textContent = m.icon;
-  document.getElementById('resultName').textContent = result.name;
-  document.getElementById('resultSub').textContent = result.isNew
-    ? "🆕 ลูกค้าใหม่ — ไม่พบประวัติ"
-    : (result.fr
+  // Local Storage Handle
+  try {
+    if (apiUrlInput) {
+      apiUrlInput.value = localStorage.getItem('riskApiUrl') || "";
+    }
+  } catch(e) {}
+
+  function updateApiStatus(){
+    if (!apiUrlInput || !apiStatus) return;
+    var url = apiUrlInput.value.trim();
+    if(!url){
+      apiStatus.textContent = "ใช้ mock data";
+      apiStatus.style.color = "#a8a6a0";
+    } else {
+      apiStatus.textContent = "เชื่อมต่อ API แล้ว";
+      apiStatus.style.color = "var(--low)";
+    }
+  }
+  updateApiStatus();
+
+  if (apiUrlInput) {
+    apiUrlInput.addEventListener('input', function() {
+      try {
+        localStorage.setItem('riskApiUrl', apiUrlInput.value.trim());
+      } catch(e) {}
+      updateApiStatus();
+    });
+  }
+
+  var DB = {
+    "ธณกร": { name:"ธณกร", score:0.08, success:12, failed:0 },
+    "นรินทร์": { name:"นรินทร์", score:0.62, success:5,  failed:3 },
+    "ปาลิดา": { name:"ปาลิดา", score:0.91, success:2,  failed:6 }
+  };
+
+  function levelOf(score){
+    if(score >= 0.8) return "high";
+    if(score >= 0.5) return "mid";
+    return "low";
+  }
+
+  var META = {
+    low:  { 
+      label:"เสี่ยงต่ำ", icon:"✅", color:"var(--low)", soft:"var(--low-soft)",
+      note:"ที่อยู่ตรวจสอบแล้ว ไว้ใจได้ ให้บริการตามปกติ",
+      factors: [
+        "🟢 ไม่พบประวัติปฏิเสธการรับพัสดุในระบบ",
+        "🟢 อัตราการจัดส่งสำเร็จสูงกว่า 90%"
+      ],
+      action: "✅ ให้บริการตามปกติ (รองรับบริการเก็บเงินปลายทาง COD)"
+    },
+    mid:  { 
+      label:"เสี่ยงกลาง", icon:"⚡", color:"var(--mid)", soft:"var(--mid-soft)",
+      note:"มีปัญหาบางครั้ง ควรเฝ้าระวังและตรวจสอบเพิ่มเติมก่อนจัดส่ง",
+      factors: [
+        "🟡 มีประวัติปฏิเสธรับพัสดุ 1-3 ครั้งในช่วง 6 เดือนล่าสุด",
+        "🟡 มีความสุ่มเสี่ยงเนื่องจากยอดสั่งซื้อค่อนข้างสูง"
+      ],
+      action: "⚠️ โทรยืนยันคำสั่งซื้อก่อนจัดส่ง หรือขอเก็บมัดจำบางส่วน"
+    },
+    high: { 
+      label:"เสี่ยงสูง", icon:"⚠️", color:"var(--high)", soft:"var(--high-soft)",
+      note:"มีประวัติปัญหาการจัดส่งซ้ำหลายครั้ง แนะนำยืนยันตัวตนก่อนจัดส่ง",
+      factors: [
+        "🔴 อัตราการตีกลับ/ปฏิเสธสินค้าสูงเกิน 50%",
+        "🔴 เคยปฏิเสธการรับพัสดุติดต่อกันใน 2 ออเดอร์ล่าสุด"
+      ],
+      action: "🚫 ปิดบริการเก็บเงินปลายทาง (COD) แนะนำให้โอนเงินเต็มจำนวนก่อนจัดส่ง"
+    }
+  };
+
+  async function fetchFromApi(baseUrl, receiver){
+    var url = baseUrl.replace(/\/+$/,'') + '/predict';
+    var res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ receiver: receiver })
+    });
+    if(!res.ok) throw new Error('API error ' + res.status);
+    var data = await res.json();
+    return {
+      name: data.name,
+      score: data.score,
+      level: data.level,
+      isNew: data.is_new,
+      success: data.total_deliveries - data.failed_deliveries,
+      failed: data.failed_deliveries,
+      total: data.total_deliveries,
+      factors: data.factors,
+      action: data.action,
+      fromApi: true
+    };
+  }
+
+  function mockLookup(id){
+    var rec = DB[id] || {
+      name: id, score: Math.random()*0.5, success: Math.floor(Math.random()*8),
+      failed: Math.floor(Math.random()*2)
+    };
+    return {
+      name: rec.name, score: rec.score, level: levelOf(rec.score),
+      isNew: !DB[id], success: rec.success, failed: rec.failed,
+      total: rec.success + rec.failed,
+      fromApi: false
+    };
+  }
+
+  async function executeCheck(){
+    var card = document.getElementById('resultCard');
+    var apiBase = apiUrlInput ? apiUrlInput.value.trim() : "";
+    var id = (custInput && custInput.value.trim()) ? custInput.value.trim() : "ธณกร";
+
+    if(!checkBtn || !card) return;
+
+    card.classList.remove('show');
+    checkBtn.classList.add('loading');
+    checkBtn.disabled = true;
+
+    var result;
+    try{
+      if(apiBase){
+        result = await fetchFromApi(apiBase, id);
+      } else {
+        await new Promise(function(r){ setTimeout(r, 600); });
+        result = mockLookup(id);
+      }
+    } catch(err){
+      await new Promise(function(r){ setTimeout(r, 300); });
+      result = mockLookup(id);
+      if(apiStatus){
+        apiStatus.textContent = "เชื่อมต่อไม่ได้ — ใช้ mock data";
+        apiStatus.style.color = "var(--high)";
+      }
+    }
+
+    var level = result.level;
+    var m = META[level];
+
+    docume
