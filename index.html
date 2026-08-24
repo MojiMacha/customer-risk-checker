@@ -1,512 +1,370 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Customer Risk Checker</title>
-<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-  :root{
-    --ink:#0b0b0c;
-    --ink-soft:#3a3a3c;
-    --paper:#f4f1ea;
-    --card:#ffffff;
-    --line:#e7e4dc;
-    --yellow:#ffc72c;
-    --yellow-deep:#e0a800;
-    --low:#17c964;   --low-soft:#e2f9ec;
-    --mid:#f5a524;   --mid-soft:#fff2df;
-    --high:#e5484d;  --high-soft:#fde4e4;
-  }
-  *{box-sizing:border-box;}
-  body{
-    margin:0;
-    min-height:100vh;
-    font-family:'Kanit',sans-serif;
-    background:
-      radial-gradient(900px 500px at 15% -10%, #fff7de 0%, transparent 60%),
-      radial-gradient(700px 500px at 110% 10%, #eef0ff 0%, transparent 55%),
-      var(--paper);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    padding:40px 16px;
-    color:var(--ink);
-  }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบวิเคราะห์และตรวจสอบความเสี่ยงพัสดุตีกลับ</title>
+  <style>
+    :root {
+      --bg: #f4f2ee;
+      --card-bg: #ffffff;
+      --text-main: #1a1a1a;
+      --text-sub: #666666;
+      --low: #22c55e;
+      --low-soft: #dcfce7;
+      --mid: #eab308;
+      --mid-soft: #fef9c3;
+      --high: #ef4444;
+      --high-soft: #fee2e2;
+      --border: #e5e5e0;
+      --primary: #18181b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body { background: var(--bg); color: var(--text-main); padding: 15px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    .app-container { width: 100%; max-width: 440px; background: #18181b; border-radius: 24px; padding: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); overflow: hidden; }
+    .top-title { color: #a1a1aa; font-size: 11px; letter-spacing: 1px; text-align: center; margin-bottom: 12px; text-transform: uppercase; }
+    
+    /* Window Frame */
+    .browser-window { background: var(--card-bg); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .window-header { background: #18181b; padding: 10px 14px; display: flex; align-items: center; gap: 6px; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot-red { background: #ef4444; }
+    .dot-yellow { background: #eab308; }
+    .dot-green { background: #22c55e; }
+    .url-bar { font-size: 11px; color: #a1a1aa; margin-left: 8px; background: #27272a; padding: 2px 8px; border-radius: 4px; flex-grow: 1; text-align: center; }
 
-  .stage{ width:100%; max-width:580px; }
+    /* Tabs */
+    .tabs-container { display: flex; background: #f1f1ee; padding: 8px; gap: 8px; border-bottom: 1px solid var(--border); }
+    .tab-btn { flex: 1; padding: 10px; border: none; background: transparent; font-size: 13px; font-weight: 600; color: var(--text-sub); border-radius: 8px; cursor: pointer; transition: all 0.2s; text-align: center; }
+    .tab-btn.active { background: #ffffff; color: var(--primary); box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
 
-  .eyebrow{
-    font-family:'JetBrains Mono',monospace;
-    font-size:12px; letter-spacing:.12em; text-transform:uppercase;
-    color:var(--ink-soft); text-align:center; margin-bottom:10px;
-  }
-  .eyebrow b{ color:var(--ink); }
+    /* Panes */
+    .view-pane { display: none; padding: 16px; min-height: 420px; background: #ffffff; }
+    .view-pane.active { display: block; }
 
-  .window{
-    background:var(--card);
-    border-radius:18px;
-    border:1px solid var(--line);
-    box-shadow: 0 30px 60px -20px rgba(11,11,12,0.25), 0 2px 6px rgba(11,11,12,0.06);
-    overflow:hidden;
-  }
-  .titlebar{
-    background:var(--ink);
-    padding:13px 16px;
-    display:flex; align-items:center; gap:9px;
-  }
-  .dot{ width:11px; height:11px; border-radius:50%; }
-  .dot.r{ background:#ff5f57; } .dot.y{ background:#febc2e; } .dot.g{ background:#28c840; }
-  .url{
-    font-family:'JetBrains Mono',monospace;
-    font-size:12px; color:#b8b8ba; margin-left:8px;
-    display:flex; align-items:center; gap:6px;
-  }
-  .url .lock{ opacity:.6; }
+    /* Check Pane Styles */
+    .input-group { margin-bottom: 12px; }
+    .input-label { font-size: 12px; font-weight: 600; color: var(--text-sub); margin-bottom: 4px; display: block; }
+    .input-field { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; outline: none; transition: border 0.2s; }
+    .input-field:focus { border-color: var(--primary); }
+    .check-btn { width: 100%; padding: 12px; background: var(--primary); color: #ffffff; border: none; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; margin-top: 4px; transition: opacity 0.2s; }
+    .check-btn:active { opacity: 0.8; }
+    .check-btn.loading { background: #52525b; cursor: wait; }
 
-  .nav-tabs {
-    display: flex;
-    background: #eeece5;
-    padding: 4px;
-    gap: 4px;
-    border-bottom: 1px solid var(--line);
-  }
-  .tab-btn {
-    flex: 1;
-    padding: 12px 8px;
-    font-family: 'Kanit', sans-serif;
-    font-size: 13.5px;
-    font-weight: 600;
-    border: none;
-    background: transparent;
-    color: var(--ink-soft);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all .2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    -webkit-tap-highlight-color: transparent;
-    user-select: none;
-  }
-  .tab-btn.active {
-    background: var(--card);
-    color: var(--ink);
-    box-shadow: 0 2px 5px rgba(0,0,0,0.06);
-  }
+    /* Result Card */
+    .result-card { margin-top: 16px; border: 1px solid var(--border); border-radius: 12px; padding: 14px; display: none; background: #fafaf9; }
+    .result-card.show { display: block; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    
+    .result-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .risk-icon { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+    .result-title-box { flex-grow: 1; }
+    .result-name { font-size: 15px; font-weight: 700; color: var(--text-main); }
+    .result-sub { font-size: 11px; color: var(--text-sub); }
+    .risk-pill { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 20px; }
 
-  .body-area{ padding:26px; background:#fbfaf7; }
+    .gauge-container { background: #e5e5e0; height: 6px; border-radius: 3px; overflow: hidden; margin: 10px 0; }
+    .gauge-fill { height: 100%; width: 0%; transition: width 0.5s ease; border-radius: 3px; }
 
-  .view-pane { display: none; }
-  .view-pane.active { display: block; }
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 10px 0; text-align: center; }
+    .stat-box { background: #ffffff; border: 1px solid var(--border); border-radius: 8px; padding: 6px; }
+    .stat-num { font-size: 14px; font-weight: 700; color: var(--text-main); }
+    .stat-lbl { font-size: 10px; color: var(--text-sub); }
 
-  .field-label{
-    font-size:14px; font-weight:600; color:var(--ink); margin-bottom:9px;
-    display:flex; align-items:center; gap:8px;
-  }
-  .field-label svg{ flex-shrink:0; }
+    .factor-item { font-size: 11px; color: var(--text-main); background: #ffffff; border: 1px solid var(--border); padding: 6px 8px; border-radius: 6px; margin-bottom: 4px; }
+    .action-advice { font-size: 12px; font-weight: 600; padding: 8px 10px; border-radius: 6px; margin-top: 8px; text-align: center; }
+    .note { font-size: 11px; margin-top: 8px; padding: 6px 8px; border-radius: 6px; display: none; }
+    .note.show { display: block; }
+    .api-status { font-size: 10px; text-align: right; margin-top: 4px; color: var(--text-sub); }
 
-  .input-row{ display:flex; gap:10px; margin-bottom:6px; }
-  input#custId, input#apiUrl {
-    flex:1;
-    font-family:'JetBrains Mono',monospace;
-    font-size:14px;
-    padding:12px 14px;
-    border-radius:12px;
-    border:1.5px solid var(--line);
-    background:var(--card);
-    color:var(--ink);
-    outline:none;
-    transition:border-color .15s ease, box-shadow .15s ease;
-  }
-  input::placeholder{ color:#a8a6a0; }
-  input:focus{
-    border-color:var(--ink);
-    box-shadow:0 0 0 3px rgba(11,11,12,0.08);
-  }
+    /* Dashboard Pane Styles (Updated with CSV Real Stats) */
+    .stats-grid-dash { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+    .stat-card-dash { background: #fcfcfc; border: 1px solid var(--border); border-radius: 10px; padding: 10px; text-align: center; }
+    .stat-card-dash .num { font-size: 15px; font-weight: 700; color: var(--text-main); margin-bottom: 2px; }
+    .stat-card-dash .label { font-size: 10px; color: var(--text-sub); line-height: 1.2; }
 
-  .hint{ font-size:12px; color:#8a8782; margin-bottom:18px; }
-  .hint code{
-    font-family:'JetBrains Mono',monospace; background:#eeece5;
-    padding:1px 6px; border-radius:5px; color:var(--ink-soft);
-  }
+    .risk-dist-box { background: #fcfcfc; border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 14px; }
+    .dist-title { font-size: 12px; font-weight: 600; color: var(--text-main); display: flex; justify-content: space-between; margin-bottom: 8px; }
+    .dist-bar-container { display: flex; height: 10px; border-radius: 5px; overflow: hidden; margin-bottom: 8px; gap: 2px; }
+    .dist-legend { display: flex; justify-content: space-between; font-size: 10px; color: var(--text-sub); }
 
-  .check-btn{
-    width:100%;
-    background:var(--ink);
-    color:var(--yellow);
-    border:none;
-    border-radius:12px;
-    padding:14px 18px;
-    font-family:'Kanit',sans-serif;
-    font-weight:700;
-    font-size:15.5px;
-    letter-spacing:.02em;
-    cursor:pointer;
-    display:flex; align-items:center; justify-content:center; gap:10px;
-    transition:transform .12s ease, background .15s ease;
-    position:relative;
-    overflow:hidden;
-    -webkit-tap-highlight-color: transparent;
-    user-select: none;
-  }
-  .check-btn:hover{ transform:translateY(-1px); }
-  .check-btn:active{ transform:translateY(0px) scale(.99); }
-  .check-btn:disabled{ cursor:progress; opacity:.9; }
+    .model-perf-box { background: #fcfcfc; border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+    .model-title { font-size: 12px; font-weight: 600; color: var(--text-main); margin-bottom: 8px; }
+    .metrics-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+    .metric-item { background: #ffffff; border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; display: flex; justify-content: space-between; font-size: 11px; }
+    .metric-item span { color: var(--text-sub); }
+    .metric-item b { color: var(--text-main); }
 
-  .check-btn .spin{
-    width:15px; height:15px; border-radius:50%;
-    border:2px solid rgba(255,199,44,0.35);
-    border-top-color:var(--yellow);
-    animation:spin .7s linear infinite;
-    display:none;
-  }
-  .check-btn.loading .spin{ display:inline-block; }
-
-  @keyframes spin{ to{ transform:rotate(360deg); } }
-
-  .result-zone{ margin-top:18px; position:relative; min-height:2px; }
-
-  .result-card{
-    background:var(--card);
-    border:1px solid var(--line);
-    border-radius:14px;
-    padding:18px 20px;
-    display:none;
-    opacity:0;
-    transform:translateY(6px);
-    transition:opacity .35s ease, transform .35s ease;
-  }
-  .result-card.show{ display:block; opacity:1; transform:translateY(0); }
-
-  .result-top{ display:flex; align-items:center; gap:14px; margin-bottom:14px; }
-  .risk-icon{
-    width:44px; height:44px; border-radius:50%;
-    display:flex; align-items:center; justify-content:center;
-    font-size:20px; flex-shrink:0;
-  }
-  .result-name{ font-weight:600; font-size:15.5px; color:var(--ink); }
-  .result-sub{ font-size:12.5px; color:#8a8782; margin-top:2px; }
-
-  .pill{
-    margin-left:auto;
-    font-size:12px; font-weight:700; padding:5px 12px; border-radius:20px;
-    white-space:nowrap;
-  }
-
-  .gauge{ height:8px; border-radius:6px; background:#eeece5; overflow:hidden; margin-bottom:16px; }
-  .gauge-fill{ height:100%; border-radius:6px; width:0%; transition:width .8s cubic-bezier(.2,.8,.2,1); }
-
-  .stat-row{ display:flex; gap:10px; }
-  .stat{
-    flex:1; background:#fbfaf7; border:1px solid var(--line); border-radius:10px;
-    padding:10px 12px; text-align:center;
-  }
-  .stat .num{ font-family:'JetBrains Mono',monospace; font-weight:600; font-size:16px; color:var(--ink); }
-  .stat .lbl{ font-size:11px; color:#8a8782; margin-top:3px; }
-
-  .note{
-    margin-top:14px; font-size:12.5px; padding:10px 12px; border-radius:10px;
-    display:none; align-items:flex-start; gap:8px; line-height:1.5;
-  }
-  .note.show{ display:flex; }
-
-  .factors-box { display:flex; flex-direction:column; gap:6px; margin-top:14px; }
-  .factor-item { font-size:12px; padding:6px 10px; border-radius:8px; background:#f7f6f2; color:var(--ink-soft); display:flex; align-items:center; gap:6px; }
-  .action-box { margin-top:10px; padding:12px 14px; border-radius:10px; font-size:13px; font-weight:600; display:flex; align-items:center; gap:8px; line-height:1.4; }
-
-  .dash-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
-  .dash-card {
-    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
-    padding: 12px; text-align: center;
-  }
-  .dash-card .val { font-family: 'JetBrains Mono', monospace; font-size: 17px; font-weight: 700; color: var(--ink); }
-  .dash-card .lbl { font-size: 11px; color: #8a8782; margin-top: 2px; }
-
-  .chart-box {
-    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
-    padding: 16px; margin-bottom: 14px;
-  }
-  .chart-title { font-size: 13px; font-weight: 600; margin-bottom: 12px; color: var(--ink); display:flex; justify-content:space-between; }
-  
-  .stack-bar { height: 14px; border-radius: 8px; display: flex; overflow: hidden; background: #eeece5; }
-  .stack-seg { height: 100%; transition: width 0.6s ease; }
-  
-  .legend-row { display: flex; justify-content: space-between; margin-top: 12px; font-size: 11.5px; }
-  .legend-item { display: flex; align-items: center; gap: 5px; color: var(--ink-soft); }
-  .dot-icon { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-
-  .ai-badge-box {
-    background: #f4f3ef; border: 1px dashed var(--line); border-radius: 12px;
-    padding: 14px; margin-top: 14px;
-  }
-  .ai-title { font-size: 12.5px; font-weight: 600; color: var(--ink); margin-bottom: 8px; display:flex; align-items:center; gap:6px; }
-  .metrics-row { display: flex; justify-content: space-around; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
-  .metric-item span { display: block; font-size: 10px; color: #8a8782; font-family: 'Kanit', sans-serif; }
-
-  footer{
-    text-align:center; margin-top:16px; font-size:11.5px; color:#9a978f;
-    font-family:'JetBrains Mono',monospace;
-  }
-</style>
+    .footer-info { font-size: 9px; color: #a1a1aa; text-align: center; margin-top: 12px; }
+  </style>
 </head>
 <body>
+  <div class="app-container">
+    <div class="top-title">โปรเจกต์จบ · ระบบโลจิสติกส์อัจฉริยะ · DEMO</div>
+    
+    <div class="browser-window">
+      <div class="window-header">
+        <div class="dot dot-red"></div>
+        <div class="dot dot-yellow"></div>
+        <div class="dot dot-green"></div>
+        <div class="url-bar">customer-risk-checker.app</div>
+      </div>
 
-<div class="stage">
-  <div class="eyebrow">โปรเจกต์จบ · ระบบโลจิสติกส์อัจฉริยะ · <b>DEMO</b></div>
+      <!-- Tabs Menu -->
+      <div class="tabs-container">
+        <button id="tabCheck" class="tab-btn active" onclick="switchTab('check')">🔍 ตรวจสอบรายบุคคล</button>
+        <button id="tabDash" class="tab-btn" onclick="switchTab('dash')">📊 สถิติภาพรวมระบบ</button>
+      </div>
 
-  <div class="window">
-    <div class="titlebar">
-      <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
-      <span class="url"><span class="lock">🔒</span> customer-risk-checker.app</span>
-    </div>
-
-    <!-- Navigation Tabs -->
-    <div class="nav-tabs">
-      <button class="tab-btn active" id="tabCheck" type="button" onclick="switchTab('check')">
-        🔍 ตรวจสอบรายบุคคล
-      </button>
-      <button class="tab-btn" id="tabDash" type="button" onclick="switchTab('dash')">
-        📊 สถิติและภาพรวมระบบ
-      </button>
-    </div>
-
-    <div class="body-area">
-      <!-- PANE 1: Individual Checker -->
-      <div class="view-pane active" id="paneCheck">
-        <div class="field-label" style="justify-content:space-between;">
-          <span style="display:flex;align-items:center;gap:8px;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-6 0v4M5 9h14l1 11H4z"/></svg>
-            API Endpoint
-          </span>
-          <span id="apiStatus" style="font-size:11px; font-weight:400; font-family:'JetBrains Mono',monospace; color:#a8a6a0;">ยังไม่ได้เชื่อมต่อ</span>
+      <!-- Pane 1: Check Individual -->
+      <div id="paneCheck" class="view-pane active">
+        <div class="input-group">
+          <label class="input-label">ชื่อผู้รับ / รหัสลูกค้า</label>
+          <input type="text" id="custId" class="input-field" placeholder="เช่น ธณกร, นรินทร์, ปาลิดา" value="ธณกร">
         </div>
-        <div class="input-row">
-          <input id="apiUrl" type="text" placeholder="วาง ngrok URL จาก Colab ที่นี่ เช่น https://xxxx.ngrok-free.app" autocomplete="off">
-        </div>
-        <div class="hint">ว่างไว้ได้ถ้าอยากลองด้วยข้อมูลจำลองก่อน ระบบจะสลับไปใช้ mock data อัตโนมัติถ้าเชื่อมต่อไม่ได้</div>
 
-        <div class="field-label">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          กรอกชื่อผู้รับ / ที่อยู่จัดส่ง
+        <div class="input-group">
+          <label class="input-label">API Endpoint URL (ถ้ามี)</label>
+          <input type="text" id="apiUrl" class="input-field" placeholder="ปล่อยว่างเพื่อใช้โหมด Mock Data">
+          <div class="api-status" id="apiStatus">โหมดจำลองระบบ (Mock Data)</div>
         </div>
-        <div class="input-row">
-          <input id="custId" type="text" placeholder="เช่น ธณกร" autocomplete="off">
-        </div>
-        <div class="hint">ลองพิมพ์ <code>ธณกร</code>, <code>นรินทร์</code> หรือ <code>ปาลิดา</code> เพื่อดูตัวอย่างผลลัพธ์</div>
 
-        <button class="check-btn" id="checkBtn" type="button" onclick="runCheck()">
-          <span class="spin"></span>
-          <span id="btnText">ตรวจสอบ</span>
+        <button id="checkBtn" class="check-btn" onclick="runCheck()">
+          <span id="btnText">ตรวจสอบความเสี่ยง</span>
         </button>
 
-        <div class="result-zone" id="resultZone">
-          <div class="result-card" id="resultCard">
-            <div class="result-top">
-              <div class="risk-icon" id="riskIcon"></div>
-              <div>
-                <div class="result-name" id="resultName">—</div>
-                <div class="result-sub" id="resultSub">—</div>
-              </div>
-              <div class="pill" id="riskPill">—</div>
+        <!-- Result Card -->
+        <div id="resultCard" class="result-card">
+          <div class="result-header">
+            <div id="riskIcon" class="risk-icon">✅</div>
+            <div class="result-title-box">
+              <div id="resultName" class="result-name">-</div>
+              <div id="resultSub" class="result-sub">-</div>
             </div>
-            <div class="gauge"><div class="gauge-fill" id="gaugeFill"></div></div>
-            <div class="stat-row">
-              <div class="stat"><div class="num" id="statSuccess">—</div><div class="lbl">จัดส่งสำเร็จ</div></div>
-              <div class="stat"><div class="num" id="statFailed">—</div><div class="lbl">ตีกลับ/ปฏิเสธ</div></div>
-              <div class="stat"><div class="num" id="statTotal">—</div><div class="lbl">จัดส่งทั้งหมด (ครั้ง)</div></div>
-            </div>
-
-            <div class="factors-box" id="riskFactors"></div>
-            <div class="action-box" id="actionAdvice"></div>
-
-            <div class="note" id="riskNote"></div>
+            <div id="riskPill" class="risk-pill">-</div>
           </div>
+
+          <div class="gauge-container">
+            <div id="gaugeFill" class="gauge-fill"></div>
+          </div>
+
+          <div class="stats-row">
+            <div class="stat-box">
+              <div id="statSuccess" class="stat-num">0</div>
+              <div class="stat-lbl">ส่งสำเร็จ</div>
+            </div>
+            <div class="stat-box">
+              <div id="statFailed" class="stat-num" style="color:var(--high);">0</div>
+              <div class="stat-lbl">ตีกลับ</div>
+            </div>
+            <div class="stat-box">
+              <div id="statTotal" class="stat-num">0</div>
+              <div class="stat-lbl">ออเดอร์รวม</div>
+            </div>
+          </div>
+
+          <div style="margin-top: 10px;">
+            <div style="font-size: 11px; font-weight: 600; color: var(--text-sub); margin-bottom: 4px;">ปัจจัยความเสี่ยง:</div>
+            <div id="riskFactors"></div>
+          </div>
+
+          <div id="actionAdvice" class="action-advice"></div>
+          <div id="riskNote" class="note"></div>
         </div>
       </div>
 
-      <!-- PANE 2: Dashboard Analytics -->
-      <div class="view-pane" id="paneDash">
-        <div class="dash-grid">
-          <div class="dash-card">
-            <div class="val">1,420</div>
-            <div class="lbl">ตรวจทั้งหมด (ออเดอร์)</div>
+      <!-- Pane 2: Dashboard Statistics (Updated with CSV Real Stats) -->
+      <div id="paneDash" class="view-pane">
+        <div class="stats-grid-dash">
+          <div class="stat-card-dash">
+            <div class="num">43</div>
+            <div class="label">รายชื่อทั้งหมด<br>(1,794 ออเดอร์)</div>
           </div>
-          <div class="dash-card">
-            <div class="val" style="color:var(--low);">฿38,500</div>
-            <div class="lbl">ประหยัดค่าส่งตีกลับ</div>
+          <div class="stat-card-dash">
+            <div class="num" style="color: var(--low);">฿6,030</div>
+            <div class="label">ประหยัดค่าส่งตีกลับ<br>(ประเมิน 45฿)</div>
           </div>
-          <div class="dash-card">
-            <div class="val" style="color:var(--high);">-32.4%</div>
-            <div class="lbl">ลดการตีกลับพัสดุ</div>
+          <div class="stat-card-dash">
+            <div class="num" style="color: var(--high);">-30.5%</div>
+            <div class="label">ลดการตีกลับพัสดุ<br>(จากกลุ่มเสี่ยง)</div>
           </div>
         </div>
 
-        <div class="chart-box">
-          <div class="chart-title">
+        <div class="risk-dist-box">
+          <div class="dist-title">
             <span>สัดส่วนระดับความเสี่ยงในระบบ</span>
-            <span style="font-size:11px; font-family:'JetBrains Mono'; color:#8a8782;">1,420 รายการ</span>
+            <span style="color: var(--text-sub);">43 รายการ</span>
           </div>
-          <div class="stack-bar">
-            <div class="stack-seg" style="width: 72%; background: var(--low);" title="เสี่ยงต่ำ 72%"></div>
-            <div class="stack-seg" style="width: 18%; background: var(--mid);" title="เสี่ยงกลาง 18%"></div>
-            <div class="stack-seg" style="width: 10%; background: var(--high);" title="เสี่ยงสูง 10%"></div>
+          <div class="dist-bar-container">
+            <div style="width: 76.7%; background: var(--low);"></div>
+            <div style="width: 16.3%; background: var(--mid);"></div>
+            <div style="width: 7.0%; background: var(--high);"></div>
           </div>
-          <div class="legend-row">
-            <div class="legend-item"><span class="dot-icon" style="background:var(--low);"></span> เสี่ยงต่ำ (72%)</div>
-            <div class="legend-item"><span class="dot-icon" style="background:var(--mid);"></span> เสี่ยงกลาง (18%)</div>
-            <div class="legend-item"><span class="dot-icon" style="background:var(--high);"></span> เสี่ยงสูง (10%)</div>
+          <div class="dist-legend">
+            <span>🟢 เสี่ยงต่ำ 76.7% (33 ราย)</span>
+            <span>🟡 เสี่ยงกลาง 16.3% (7 ราย)</span>
+            <span>🔴 เสี่ยงสูง 7.0% (3 ราย)</span>
           </div>
         </div>
 
-        <div class="ai-badge-box">
-          <div class="ai-title">
-            🤖 ประสิทธิภาพโมเดลจำแนกความเสี่ยง (XGBoost Classifier)
-          </div>
-          <div class="metrics-row">
-            <div class="metric-item"><span>Accuracy</span><b>94.8%</b></div>
-            <div class="metric-item"><span>Precision</span><b>92.1%</b></div>
-            <div class="metric-item"><span>Recall</span><b>89.5%</b></div>
-            <div class="metric-item"><span>F1-Score</span><b>90.8%</b></div>
+        <div class="model-perf-box">
+          <div class="model-title">🤖 ประสิทธิภาพโมเดล (XGBoost / RandomForest)</div>
+          <div class="metrics-grid">
+            <div class="metric-item"><span>Accuracy</span><b>77.28%</b></div>
+            <div class="metric-item"><span>Precision</span><b>75.40%</b></div>
+            <div class="metric-item"><span>Recall</span><b>73.10%</b></div>
+            <div class="metric-item"><span>F1-Score</span><b>74.20%</b></div>
           </div>
         </div>
       </div>
+
     </div>
+
+    <div class="footer-info">customer-risk-checker.app — ระบบวิเคราะห์และตรวจสอบความเสี่ยงพัสดุตีกลับ</div>
   </div>
 
-  <footer>customer-risk-checker.app — ระบบวิเคราะห์และตรวจสอบความเสี่ยงพัสดุตีกลับ</footer>
-</div>
+  <script>
+    // สลับแท็บหน้าจอ
+    function switchTab(tabName) {
+      document.getElementById('tabCheck').className = 'tab-btn' + (tabName === 'check' ? ' active' : '');
+      document.getElementById('tabDash').className = 'tab-btn' + (tabName === 'dash' ? ' active' : '');
+      document.getElementById('paneCheck').className = 'view-pane' + (tabName === 'check' ? ' active' : '');
+      document.getElementById('paneDash').className = 'view-pane' + (tabName === 'dash' ? ' active' : '');
+    }
 
-<script>
-// Switch Tabs
-function switchTab(tabName) {
-  var bCheck = document.getElementById('tabCheck');
-  var bDash = document.getElementById('tabDash');
-  var pCheck = document.getElementById('paneCheck');
-  var pDash = document.getElementById('paneDash');
-
-  if (tabName === 'check') {
-    bCheck.className = 'tab-btn active';
-    bDash.className = 'tab-btn';
-    pCheck.className = 'view-pane active';
-    pDash.className = 'view-pane';
-  } else {
-    bDash.className = 'tab-btn active';
-    bCheck.className = 'tab-btn';
-    pDash.className = 'view-pane active';
-    pCheck.className = 'view-pane';
-  }
-}
-
-var DB = {
-  "ธณกร": { name:"ธณกร", score:0.08, success:12, failed:0 },
-  "นรินทร์": { name:"นรินทร์", score:0.62, success:5,  failed:3 },
-  "ปาลิดา": { name:"ปาลิดา", score:0.91, success:2,  failed:6 }
-};
-
-var META = {
-  low:  { 
-    label:"เสี่ยงต่ำ", icon:"✅", color:"var(--low)", soft:"var(--low-soft)",
-    note:"ที่อยู่ตรวจสอบแล้ว ไว้ใจได้ ให้บริการตามปกติ",
-    factors: ["🟢 ไม่พบประวัติปฏิเสธการรับพัสดุในระบบ", "🟢 อัตราการจัดส่งสำเร็จสูงกว่า 90%"],
-    action: "✅ ให้บริการตามปกติ (รองรับบริการเก็บเงินปลายทาง COD)"
-  },
-  mid:  { 
-    label:"เสี่ยงกลาง", icon:"⚡", color:"var(--mid)", soft:"var(--mid-soft)",
-    note:"มีปัญหาบางครั้ง ควรเฝ้าระวังและตรวจสอบเพิ่มเติมก่อนจัดส่ง",
-    factors: ["🟡 มีประวัติปฏิเสธรับพัสดุ 1-3 ครั้งในช่วง 6 เดือนล่าสุด", "🟡 มีความสุ่มเสี่ยงเนื่องจากยอดสั่งซื้อค่อนข้างสูง"],
-    action: "⚠️ โทรยืนยันคำสั่งซื้อก่อนจัดส่ง หรือขอเก็บมัดจำบางส่วน"
-  },
-  high: { 
-    label:"เสี่ยงสูง", icon:"⚠️", color:"var(--high)", soft:"var(--high-soft)",
-    note:"มีประวัติปัญหาการจัดส่งซ้ำหลายครั้ง แนะนำยืนยันตัวตนก่อนจัดส่ง",
-    factors: ["🔴 อัตราการตีกลับ/ปฏิเสธสินค้าสูงเกิน 50%", "🔴 เคยปฏิเสธการรับพัสดุติดต่อกันใน 2 ออเดอร์ล่าสุด"],
-    action: "🚫 ปิดบริการเก็บเงินปลายทาง (COD) แนะนำให้โอนเงินเต็มจำนวนก่อนจัดส่ง"
-  }
-};
-
-function levelOf(s){
-  if(s >= 0.8) return "high";
-  if(s >= 0.5) return "mid";
-  return "low";
-}
-
-function runCheck(){
-  var btn = document.getElementById('checkBtn');
-  var btnText = document.getElementById('btnText');
-  var custInput = document.getElementById('custId');
-  var apiUrlInput = document.getElementById('apiUrl');
-  var card = document.getElementById('resultCard');
-  var apiStatus = document.getElementById('apiStatus');
-
-  var id = (custInput && custInput.value.trim()) ? custInput.value.trim() : "ธณกร";
-  var apiBase = (apiUrlInput && apiUrlInput.value.trim()) ? apiUrlInput.value.trim() : "";
-
-  card.className = 'result-card';
-  btn.className = 'check-btn loading';
-  btn.disabled = true;
-  btnText.textContent = "กำลังสแกน…";
-
-  setTimeout(function(){
-    var rec = DB[id] || {
-      name: id,
-      score: Math.random() * 0.4,
-      success: Math.floor(Math.random() * 6) + 1,
-      failed: Math.floor(Math.random() * 2)
+    // ฐานข้อมูลจำลองสอดคล้องกับ CSV (ตัวอย่างข้อมูลบางส่วน)
+    var DB = {
+      "ธณกร": { name: "ธณกร", score: 0.85, success: 25, failed: 27, total: 52 },
+      "นรินทร์": { name: "นรินทร์", score: 0.25, success: 59, failed: 16, total: 75 },
+      "ปาลิดา": { name: "ปาลิดา", score: 0.12, success: 28, failed: 2, total: 30 },
+      "เพชรทักษิณ": { name: "เพชรทักษิณ", score: 0.92, success: 41, failed: 21, total: 62 },
+      "นฤบดินทร์": { name: "นฤบดินทร์", score: 0.05, success: 140, failed: 0, total: 140 }
     };
 
-    var result = {
-      name: rec.name,
-      score: rec.score,
-      level: levelOf(rec.score),
-      isNew: !DB[id],
-      success: rec.success,
-      failed: rec.failed,
-      total: rec.success + rec.failed
+    var META = {
+      low:  { label:"เสี่ยงต่ำ", icon:"✅", color:"var(--low)", soft:"var(--low-soft)", note:"ที่อยู่ตรวจสอบแล้ว ไว้ใจได้ ให้บริการตามปกติ", factors: ["🟢 ไม่พบประวัติปฏิเสธการรับพัสดุซ้ำซ้อน", "🟢 อัตราการจัดส่งสำเร็จสูงกว่าเกณฑ์มาตรฐาน"], action: "✅ ให้บริการตามปกติ (รองรับบริการเก็บเงินปลายทาง COD)" },
+      mid:  { label:"เสี่ยงกลาง", icon:"⚡", color:"var(--mid)", soft:"var(--mid-soft)", note:"มีปัญหาบางครั้ง ควรเฝ้าระวังและตรวจสอบก่อนจัดส่ง", factors: ["🟡 มีประวัติปฏิเสธรับพัสดุในช่วง 6 เดือนล่าสุด", "🟡 มีความสุ่มเสี่ยงเนื่องจากยอดคำสั่งซื้อ"], action: "⚠️ โทรยืนยันคำสั่งซื้อก่อนจัดส่ง หรือขอเก็บมัดจำบางส่วน" },
+      high: { label:"เสี่ยงสูง", icon:"⚠️", color:"var(--high)", soft:"var(--high-soft)", note:"มีประวัติปัญหาการจัดส่งซ้ำหลายครั้ง แนะนำยืนยันตัวตนก่อนจัดส่ง", factors: ["🔴 อัตราการตีกลับ/ปฏิเสธสินค้าสูงเกินเกณฑ์", "🔴 เคยปฏิเสธการรับพัสดุติดต่อกันในออเดอร์ล่าสุด"], action: "🚫 ปิดบริการเก็บเงินปลายทาง (COD) แนะนำให้โอนเงินก่อนจัดส่ง" }
     };
 
-    var m = META[result.level];
+    function levelOf(s){ return s >= 0.8 ? "high" : (s >= 0.5 ? "mid" : "low"); }
 
-    document.getElementById('riskIcon').style.background = m.soft;
-    document.getElementById('riskIcon').textContent = m.icon;
-    document.getElementById('resultName').textContent = result.name;
-    document.getElementById('resultSub').textContent = result.isNew ? "🆕 ลูกค้าใหม่ — ไม่พบประวัติ" : "พบประวัติในระบบ";
-    
-    var pill = document.getElementById('riskPill');
-    pill.textContent = m.label + ' · ' + Math.round(result.score * 100) + '%';
-    pill.style.background = m.soft;
-    pill.style.color = m.color;
+    // ฟังก์ชันหลักทำงานเมื่อกดปุ่ม "ตรวจสอบความเสี่ยง"
+    async function runCheck(){
+      var btn = document.getElementById('checkBtn');
+      var btnText = document.getElementById('btnText');
+      var custInput = document.getElementById('custId');
+      var apiUrlInput = document.getElementById('apiUrl');
+      var card = document.getElementById('resultCard');
+      var apiStatus = document.getElementById('apiStatus');
 
-    var fill = document.getElementById('gaugeFill');
-    fill.style.background = m.color;
-    fill.style.width = Math.round(result.score * 100) + '%';
+      var id = (custInput && custInput.value.trim()) ? custInput.value.trim() : "ธณกร";
+      var apiBase = (apiUrlInput && apiUrlInput.value.trim()) ? apiUrlInput.value.trim() : "";
 
-    document.getElementById('statSuccess').textContent = result.success;
-    document.getElementById('statFailed').textContent = result.failed;
-    document.getElementById('statTotal').textContent = result.total;
+      card.className = 'result-card';
+      btn.className = 'check-btn loading';
+      btn.disabled = true;
+      btnText.textContent = "กำลังสแกนข้อมูล…";
 
-    var factorsEl = document.getElementById('riskFactors');
-    factorsEl.innerHTML = m.factors.map(function(f){ return '<div class="factor-item">' + f + '</div>'; }).join('');
+      var result;
 
-    var actionEl = document.getElementById('actionAdvice');
-    actionEl.textContent = m.action;
-    actionEl.style.background = m.soft;
-    actionEl.style.color = m.color;
+      if (apiBase) {
+        try {
+          var url = apiBase.replace(/\/+$/, '') + '/predict';
+          var res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ receiver: id })
+          });
+          if(!res.ok) throw new Error();
+          var data = await res.json();
+          result = {
+            name: data.name || id,
+            score: data.score || 0.1,
+            level: data.level || levelOf(data.score || 0.1),
+            isNew: data.is_new || false,
+            success: (data.total_deliveries || 0) - (data.failed_deliveries || 0),
+            failed: data.failed_deliveries || 0,
+            total: data.total_deliveries || 0,
+            factors: data.factors,
+            action: data.action
+          };
+          if(apiStatus) { apiStatus.textContent = "เชื่อมต่อ API สำเร็จ"; apiStatus.style.color = "var(--low)"; }
+        } catch(e) {
+          if(apiStatus) { apiStatus.textContent = "API ขัดข้อง — ใช้ระบบจำลอง"; apiStatus.style.color = "var(--high)"; }
+          result = getMockData(id);
+        }
+      } else {
+        await new Promise(r => setTimeout(r, 400));
+        result = getMockData(id);
+        if(apiStatus) { apiStatus.textContent = "โหมดจำลองระบบ (Mock Data)"; apiStatus.style.color = "#a8a6a0"; }
+      }
 
-    var note = document.getElementById('riskNote');
-    note.textContent = (result.level === "high" ? "⚠️ " : result.level === "mid" ? "👁 " : "✅ ") + m.note;
-    note.style.background = m.soft;
-    note.style.color = m.color;
-    note.className = 'note show';
+      renderResult(result);
 
-    btn.className = 'check-btn';
-    btn.disabled = false;
-    btnText.textContent = "ตรวจสอบ";
-    card.className = 'result-card show';
-  }, 500);
-}
-</script>
+      btn.className = 'check-btn';
+      btn.disabled = false;
+      btnText.textContent = "ตรวจสอบความเสี่ยง";
+      card.className = 'result-card show';
+    }
+
+    function getMockData(id){
+      var rec = DB[id] || { 
+        name: id, 
+        score: Math.random() * 0.7 + 0.1, 
+        success: Math.floor(Math.random() * 20) + 5, 
+        failed: Math.floor(Math.random() * 5),
+        total: 0
+      };
+      rec.total = rec.success + rec.failed;
+      return {
+        name: rec.name,
+        score: rec.score,
+        level: levelOf(rec.score),
+        isNew: !DB[id],
+        success: rec.success,
+        failed: rec.failed,
+        total: rec.total
+      };
+    }
+
+    function renderResult(result){
+      var m = META[result.level];
+
+      document.getElementById('riskIcon').style.background = m.soft;
+      document.getElementById('riskIcon').textContent = m.icon;
+      document.getElementById('resultName').textContent = result.name;
+      document.getElementById('resultSub').textContent = result.isNew ? "🆕 ลูกค้าใหม่ — ไม่พบประวัติในระบบ" : "พบประวัติในฐานข้อมูล CSV";
+
+      var pill = document.getElementById('riskPill');
+      pill.textContent = m.label + ' · ' + Math.round(result.score * 100) + '%';
+      pill.style.background = m.soft;
+      pill.style.color = m.color;
+
+      var fill = document.getElementById('gaugeFill');
+      fill.style.background = m.color;
+      fill.style.width = Math.round(result.score * 100) + '%';
+
+      document.getElementById('statSuccess').textContent = result.success;
+      document.getElementById('statFailed').textContent = result.failed;
+      document.getElementById('statTotal').textContent = result.total;
+
+      var factorsEl = document.getElementById('riskFactors');
+      var factorsList = result.factors || m.factors;
+      factorsEl.innerHTML = factorsList.map(function(f){ return '<div class="factor-item">' + f + '</div>'; }).join('');
+
+      var actionEl = document.getElementById('actionAdvice');
+      actionEl.textContent = result.action || m.action;
+      actionEl.style.background = m.soft;
+      actionEl.style.color = m.color;
+
+      var note = document.getElementById('riskNote');
+      note.textContent = (result.level === "high" ? "⚠️ " : result.level === "mid" ? "👁 " : "✅ ") + m.note;
+      note.style.background = m.soft;
+      note.style.color = m.color;
+      note.className = 'note show';
+    }
+  </script>
 </body>
-    </html>
-    
+  </html>
+  
