@@ -219,12 +219,12 @@
 
       <div class="field-label">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        กรอกรหัสลูกค้า / ที่อยู่จัดส่ง
+        กรอกชื่อผู้รับ / ที่อยู่จัดส่ง
       </div>
       <div class="input-row">
-        <input id="custId" type="text" placeholder="เช่น CUST-004521" autocomplete="off">
+        <input id="custId" type="text" placeholder="เช่น ธณกร" autocomplete="off">
       </div>
-      <div class="hint">ลองพิมพ์ <code>CUST-004521</code>, <code>CUST-009981</code> หรือ <code>CUST-011230</code> เพื่อดูตัวอย่างผลลัพธ์</div>
+      <div class="hint">ลองพิมพ์ <code>ธณกร</code>, <code>นรินทร์</code> หรือ <code>ปาลิดา</code> เพื่อดูตัวอย่างผลลัพธ์</div>
 
       <button class="check-btn" id="checkBtn" onclick="runCheck()">
         <span class="spin"></span>
@@ -259,9 +259,9 @@
 <script>
 // mock dataset — ปรับ/เชื่อมกับโมเดลจริงทีหลังได้
 const DB = {
-  "CUST-004521": { name:"CUST-004521", score:0.08, success:12, failed:0 },
-  "CUST-009981": { name:"CUST-009981", score:0.62, success:5,  failed:3 },
-  "CUST-011230": { name:"CUST-011230", score:0.91, success:2,  failed:6 },
+  "ธณกร": { name:"ธณกร", score:0.08, success:12, failed:0 },
+  "นรินทร์": { name:"นรินทร์", score:0.62, success:5,  failed:3 },
+  "ปาลิดา": { name:"ปาลิดา", score:0.91, success:2,  failed:6 },
 };
 
 function levelOf(score){
@@ -336,7 +336,7 @@ function mockLookup(id){
 
 async function runCheck(){
   const btn = document.getElementById('checkBtn');
-  const id = document.getElementById('custId').value.trim().toUpperCase() || "CUST-004521";
+  const id = document.getElementById('custId').value.trim() || "ธณกร";
   const card = document.getElementById('resultCard');
   const apiBase = apiUrlInput.value.trim();
 
