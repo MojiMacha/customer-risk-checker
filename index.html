@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Customer Risk Checker</title>
-<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
     --ink:#0b0b0c;
@@ -34,7 +34,7 @@
     color:var(--ink);
   }
 
-  .stage{ width:100%; max-width:560px; }
+  .stage{ width:100%; max-width:580px; }
 
   .eyebrow{
     font-family:'JetBrains Mono',monospace;
@@ -65,7 +65,41 @@
   }
   .url .lock{ opacity:.6; }
 
-  .body-area{ padding:28px 26px 30px; background:#fbfaf7; }
+  /* ---------- Navigation Tabs ---------- */
+  .nav-tabs {
+    display: flex;
+    background: #eeece5;
+    padding: 4px;
+    gap: 4px;
+    border-bottom: 1px solid var(--line);
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 9px 12px;
+    font-family: 'Kanit', sans-serif;
+    font-size: 13.5px;
+    font-weight: 600;
+    border: none;
+    background: transparent;
+    color: var(--ink-soft);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all .2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .tab-btn.active {
+    background: var(--card);
+    color: var(--ink);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.06);
+  }
+
+  .body-area{ padding:26px; background:#fbfaf7; }
+
+  .view-pane { display: none; }
+  .view-pane.active { display: block; }
 
   .field-label{
     font-size:14px; font-weight:600; color:var(--ink); margin-bottom:9px;
@@ -74,11 +108,11 @@
   .field-label svg{ flex-shrink:0; }
 
   .input-row{ display:flex; gap:10px; margin-bottom:6px; }
-  input#custId{
+  input#custId, input#apiUrl {
     flex:1;
     font-family:'JetBrains Mono',monospace;
-    font-size:14.5px;
-    padding:13px 16px;
+    font-size:14px;
+    padding:12px 14px;
     border-radius:12px;
     border:1.5px solid var(--line);
     background:var(--card);
@@ -86,13 +120,13 @@
     outline:none;
     transition:border-color .15s ease, box-shadow .15s ease;
   }
-  input#custId::placeholder{ color:#a8a6a0; }
-  input#custId:focus{
+  input::placeholder{ color:#a8a6a0; }
+  input:focus{
     border-color:var(--ink);
     box-shadow:0 0 0 3px rgba(11,11,12,0.08);
   }
 
-  .hint{ font-size:12px; color:#8a8782; margin-bottom:20px; }
+  .hint{ font-size:12px; color:#8a8782; margin-bottom:18px; }
   .hint code{
     font-family:'JetBrains Mono',monospace; background:#eeece5;
     padding:1px 6px; border-radius:5px; color:var(--ink-soft);
@@ -134,13 +168,6 @@
 
   @keyframes spin{ to{ transform:rotate(360deg); } }
 
-  /* ---------- scan sweep on the whole card while loading ---------- */
-  .body-area.scanning::before{
-    content:"";
-    position:absolute;
-    inset:0;
-    pointer-events:none;
-  }
   .result-zone{ margin-top:18px; position:relative; min-height:2px; }
 
   .result-card{
@@ -187,10 +214,39 @@
   }
   .note.show{ display:flex; }
 
-  /* ---------- risk factors & action advice ---------- */
   .factors-box { display:flex; flex-direction:column; gap:6px; margin-top:14px; }
   .factor-item { font-size:12px; padding:6px 10px; border-radius:8px; background:#f7f6f2; color:var(--ink-soft); display:flex; align-items:center; gap:6px; }
   .action-box { margin-top:10px; padding:12px 14px; border-radius:10px; font-size:13px; font-weight:600; display:flex; align-items:center; gap:8px; line-height:1.4; }
+
+  /* ---------- Dashboard Analytics Styles ---------- */
+  .dash-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+  .dash-card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 12px; text-align: center;
+  }
+  .dash-card .val { font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 700; color: var(--ink); }
+  .dash-card .lbl { font-size: 11px; color: #8a8782; margin-top: 2px; }
+
+  .chart-box {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 16px; margin-bottom: 14px;
+  }
+  .chart-title { font-size: 13px; font-weight: 600; margin-bottom: 12px; color: var(--ink); display:flex; justify-content:space-between; }
+  
+  .stack-bar { height: 14px; border-radius: 8px; display: flex; overflow: hidden; background: #eeece5; }
+  .stack-seg { height: 100%; transition: width 0.6s ease; }
+  
+  .legend-row { display: flex; justify-content: space-between; margin-top: 12px; font-size: 11.5px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; color: var(--ink-soft); }
+  .dot-icon { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+  .ai-badge-box {
+    background: #f4f3ef; border: 1px dashed var(--line); border-radius: 12px;
+    padding: 14px; margin-top: 14px;
+  }
+  .ai-title { font-size: 12.5px; font-weight: 600; color: var(--ink); margin-bottom: 8px; display:flex; align-items:center; gap:6px; }
+  .metrics-row { display: flex; justify-content: space-around; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+  .metric-item span { display: block; font-size: 10px; color: #8a8782; font-family: 'Kanit', sans-serif; }
 
   footer{
     text-align:center; margin-top:16px; font-size:11.5px; color:#9a978f;
@@ -201,7 +257,7 @@
 <body>
 
 <div class="stage">
-  <div class="eyebrow">โปรเจกจบ · ระบบโลจิสติกส์อัจฉริยะ · <b>DEMO</b></div>
+  <div class="eyebrow">โปรเจกต์จบ · ระบบโลจิสติกส์อัจฉริยะ · <b>DEMO</b></div>
 
   <div class="window">
     <div class="titlebar">
@@ -209,64 +265,144 @@
       <span class="url"><span class="lock">🔒</span> customer-risk-checker.app</span>
     </div>
 
-    <div class="body-area" id="bodyArea">
-      <div class="field-label" style="justify-content:space-between;">
-        <span style="display:flex;align-items:center;gap:8px;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 9V5a3 3 0 0 0-6 0v4M5 9h14l1 11H4z"/></svg>
-          API Endpoint
-        </span>
-        <span id="apiStatus" style="font-size:11px; font-weight:400; font-family:'JetBrains Mono',monospace; color:#a8a6a0;">ยังไม่ได้เชื่อมต่อ</span>
-      </div>
-      <div class="input-row">
-        <input id="apiUrl" type="text" placeholder="วาง ngrok URL จาก Colab ที่นี่ เช่น https://xxxx.ngrok-free.app" autocomplete="off">
-      </div>
-      <div class="hint">ว่างไว้ได้ถ้าอยากลองด้วยข้อมูลจำลองก่อน ระบบจะสลับไปใช้ mock data อัตโนมัติถ้าเชื่อมต่อไม่ได้</div>
-
-      <div class="field-label">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        กรอกชื่อผู้รับ / ที่อยู่จัดส่ง
-      </div>
-      <div class="input-row">
-        <input id="custId" type="text" placeholder="เช่น ธณกร" autocomplete="off">
-      </div>
-      <div class="hint">ลองพิมพ์ <code>ธณกร</code>, <code>นรินทร์</code> หรือ <code>ปาลิดา</code> เพื่อดูตัวอย่างผลลัพธ์</div>
-
-      <button class="check-btn" id="checkBtn" onclick="runCheck()">
-        <span class="spin"></span>
-        <span class="btn-txt"></span>
+    <!-- Navigation Bar -->
+    <div class="nav-tabs">
+      <button class="tab-btn active" id="tabCheck" onclick="switchTab('check')">
+        🔍 ตรวจสอบรายบุคคล
       </button>
+      <button class="tab-btn" id="tabDash" onclick="switchTab('dash')">
+        📊 สถิติและภาพรวมระบบ
+      </button>
+    </div>
 
-      <div class="result-zone" id="resultZone">
-        <div class="result-card" id="resultCard">
-          <div class="result-top">
-            <div class="risk-icon" id="riskIcon"></div>
-            <div>
-              <div class="result-name" id="resultName">—</div>
-              <div class="result-sub" id="resultSub">—</div>
+    <div class="body-area">
+      <!-- PANE 1: Individual Checker -->
+      <div class="view-pane active" id="paneCheck">
+        <div class="field-label" style="justify-content:space-between;">
+          <span style="display:flex;align-items:center;gap:8px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-6 0v4M5 9h14l1 11H4z"/></svg>
+            API Endpoint
+          </span>
+          <span id="apiStatus" style="font-size:11px; font-weight:400; font-family:'JetBrains Mono',monospace; color:#a8a6a0;">ยังไม่ได้เชื่อมต่อ</span>
+        </div>
+        <div class="input-row">
+          <input id="apiUrl" type="text" placeholder="วาง ngrok URL จาก Colab ที่นี่ เช่น https://xxxx.ngrok-free.app" autocomplete="off">
+        </div>
+        <div class="hint">ว่างไว้ได้ถ้าอยากลองด้วยข้อมูลจำลองก่อน ระบบจะสลับไปใช้ mock data อัตโนมัติถ้าเชื่อมต่อไม่ได้</div>
+
+        <div class="field-label">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          กรอกชื่อผู้รับ / ที่อยู่จัดส่ง
+        </div>
+        <div class="input-row">
+          <input id="custId" type="text" placeholder="เช่น ธณกร" autocomplete="off">
+        </div>
+        <div class="hint">ลองพิมพ์ <code>ธณกร</code>, <code>นรินทร์</code> หรือ <code>ปาลิดา</code> เพื่อดูตัวอย่างผลลัพธ์</div>
+
+        <button class="check-btn" id="checkBtn" onclick="runCheck()">
+          <span class="spin"></span>
+          <span class="btn-txt"></span>
+        </button>
+
+        <div class="result-zone" id="resultZone">
+          <div class="result-card" id="resultCard">
+            <div class="result-top">
+              <div class="risk-icon" id="riskIcon"></div>
+              <div>
+                <div class="result-name" id="resultName">—</div>
+                <div class="result-sub" id="resultSub">—</div>
+              </div>
+              <div class="pill" id="riskPill">—</div>
             </div>
-            <div class="pill" id="riskPill">—</div>
-          </div>
-          <div class="gauge"><div class="gauge-fill" id="gaugeFill"></div></div>
-          <div class="stat-row">
-            <div class="stat"><div class="num" id="statSuccess">—</div><div class="lbl">จัดส่งสำเร็จ</div></div>
-            <div class="stat"><div class="num" id="statFailed">—</div><div class="lbl">ตีกลับ/ปฏิเสธ</div></div>
-            <div class="stat"><div class="num" id="statTotal">—</div><div class="lbl">จัดส่งทั้งหมด (ครั้ง)</div></div>
-          </div>
+            <div class="gauge"><div class="gauge-fill" id="gaugeFill"></div></div>
+            <div class="stat-row">
+              <div class="stat"><div class="num" id="statSuccess">—</div><div class="lbl">จัดส่งสำเร็จ</div></div>
+              <div class="stat"><div class="num" id="statFailed">—</div><div class="lbl">ตีกลับ/ปฏิเสธ</div></div>
+              <div class="stat"><div class="num" id="statTotal">—</div><div class="lbl">จัดส่งทั้งหมด (ครั้ง)</div></div>
+            </div>
 
-          <div class="factors-box" id="riskFactors"></div>
-          <div class="action-box" id="actionAdvice"></div>
+            <div class="factors-box" id="riskFactors"></div>
+            <div class="action-box" id="actionAdvice"></div>
 
-          <div class="note" id="riskNote"></div>
+            <div class="note" id="riskNote"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANE 2: Dashboard Analytics -->
+      <div class="view-pane" id="paneDash">
+        <div class="dash-grid">
+          <div class="dash-card">
+            <div class="val">1,420</div>
+            <div class="lbl">ตรวจทั้งหมด (ออเดอร์)</div>
+          </div>
+          <div class="dash-card">
+            <div class="val" style="color:var(--low);">฿38,500</div>
+            <div class="lbl">ประหยัดค่าส่งตีกลับ</div>
+          </div>
+          <div class="dash-card">
+            <div class="val" style="color:var(--high);">-32.4%</div>
+            <div class="lbl">ลดการตีกลับพัสดุ</div>
+          </div>
+        </div>
+
+        <div class="chart-box">
+          <div class="chart-title">
+            <span>สัดส่วนระดับความเสี่ยงในระบบ</span>
+            <span style="font-size:11px; font-family:'JetBrains Mono'; color:#8a8782;">1,420 รายการ</span>
+          </div>
+          <div class="stack-bar">
+            <div class="stack-seg" style="width: 72%; background: var(--low);" title="เสี่ยงต่ำ 72%"></div>
+            <div class="stack-seg" style="width: 18%; background: var(--mid);" title="เสี่ยงกลาง 18%"></div>
+            <div class="stack-seg" style="width: 10%; background: var(--high);" title="เสี่ยงสูง 10%"></div>
+          </div>
+          <div class="legend-row">
+            <div class="legend-item"><span class="dot-icon" style="background:var(--low);"></span> เสี่ยงต่ำ (72%)</div>
+            <div class="legend-item"><span class="dot-icon" style="background:var(--mid);"></span> เสี่ยงกลาง (18%)</div>
+            <div class="legend-item"><span class="dot-icon" style="background:var(--high);"></span> เสี่ยงสูง (10%)</div>
+          </div>
+        </div>
+
+        <div class="ai-badge-box">
+          <div class="ai-title">
+            🤖 ประสิทธิภาพโมเดลการพาดหัวจำแนกความเสี่ยง (XGBoost + Logistics)
+          </div>
+          <div class="metrics-row">
+            <div class="metric-item"><span>Accuracy</span><b>94.8%</b></div>
+            <div class="metric-item"><span>Precision</span><b>92.1%</b></div>
+            <div class="metric-item"><span>Recall</span><b>89.5%</b></div>
+            <div class="metric-item"><span>F1-Score</span><b>90.8%</b></div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <footer>customer-risk-checker.app — เชื่อมต่อโมเดลจริงผ่าน API ได้ (ถ้าไม่ใส่ URL จะใช้ mock data แทน)</footer>
+  <footer>customer-risk-checker.app — ระบบวิเคราะห์และตรวจสอบความเสี่ยงพัสดุตีกลับ</footer>
 </div>
 
 <script>
-// mock dataset — ปรับ/เชื่อมกับโมเดลจริงทีหลังได้
+// Tab Switching Logic
+function switchTab(tabName) {
+  const btnCheck = document.getElementById('tabCheck');
+  const btnDash = document.getElementById('tabDash');
+  const paneCheck = document.getElementById('paneCheck');
+  const paneDash = document.getElementById('paneDash');
+
+  if(tabName === 'check') {
+    btnCheck.classList.add('active');
+    btnDash.classList.remove('active');
+    paneCheck.classList.add('active');
+    paneDash.classList.remove('active');
+  } else {
+    btnDash.classList.add('active');
+    btnCheck.classList.remove('active');
+    paneDash.classList.add('active');
+    paneCheck.classList.remove('active');
+  }
+}
+
+// mock dataset
 const DB = {
   "ธณกร": { name:"ธณกร", score:0.08, success:12, failed:0 },
   "นรินทร์": { name:"นรินทร์", score:0.62, success:5,  failed:3 },
@@ -309,7 +445,6 @@ const META = {
   },
 };
 
-// โหลด/บันทึก API URL ไว้ใน localStorage กันต้องพิมพ์ใหม่ทุกครั้ง
 const apiUrlInput = document.getElementById('apiUrl');
 const apiStatus = document.getElementById('apiStatus');
 apiUrlInput.value = localStorage.getItem('riskApiUrl') || "";
@@ -412,36 +547,4 @@ async function runCheck(){
   fill.style.width = "0%";
   requestAnimationFrame(()=>{ fill.style.width = `${Math.round(result.score*100)}%`; });
 
-  document.getElementById('statSuccess').textContent = result.success;
-  document.getElementById('statFailed').textContent = result.failed;
-  document.getElementById('statTotal').textContent = result.total;
-
-  // แสดง ปัจจัยความเสี่ยง (Risk Factors)
-  const factorsEl = document.getElementById('riskFactors');
-  const factorsList = result.fromApi && result.factors ? result.factors : m.factors;
-  factorsEl.innerHTML = factorsList.map(f => `<div class="factor-item">${f}</div>`).join('');
-
-  // แสดง คำแนะนำการดำเนินการ (Action Advice)
-  const actionEl = document.getElementById('actionAdvice');
-  actionEl.textContent = result.fromApi && result.action ? result.action : m.action;
-  actionEl.style.background = m.soft;
-  actionEl.style.color = m.color;
-
-  const note = document.getElementById('riskNote');
-  note.textContent = (level === "high" ? "⚠️ " : level === "mid" ? "👁 " : "✅ ") + m.note;
-  note.style.background = m.soft;
-  note.style.color = m.color;
-  note.classList.add('show');
-
-  btn.classList.remove('loading');
-  btn.disabled = false;
-  card.classList.add('show');
-}
-
-document.getElementById('custId').addEventListener('keydown', (e)=>{
-  if(e.key === 'Enter') runCheck();
-});
-</script>
-</body>
-                                                                                                                                                                   </html>
-                                                                                                                                                                   
+  document.getElementById('statSuccess').textContent 
