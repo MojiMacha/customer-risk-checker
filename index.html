@@ -18,7 +18,7 @@
                     <i class="fa-solid fa-truck-shield text-indigo-600"></i>
                     Delivery Risk & Delivery Tracker
                 </h1>
-                <p class="text-xs text-slate-500 mt-1">ตรวจสอบความเสี่ยง บันทึกผลการจัดส่ง (สำเร็จ/ตีกลับ) และ Audit Log</p>
+                <p class="text-xs text-slate-500 mt-1">ตรวจสอบความเสี่ยง บันทึกผลการจัดส่ง และแก้ไขรายการกดผิด (Undo)</p>
             </div>
             
             <div class="flex bg-slate-100 p-1 rounded-xl gap-1">
@@ -95,7 +95,7 @@
                     </div>
                 </div>
 
-                <!-- NEW: Quick Delivery Record Action -->
+                <!-- Delivery Action Control -->
                 <div class="pt-4 border-t border-slate-200 bg-slate-50/50 p-4 rounded-xl border">
                     <h4 class="text-xs font-bold text-slate-700 mb-3 flex items-center gap-1.5">
                         <i class="fa-solid fa-boxes-packing text-indigo-600"></i> บันทึกผลการจัดส่งพัสดุรายการล่าสุด
@@ -118,11 +118,14 @@
                     <div id="blacklistControls" class="bg-slate-50 p-4 rounded-xl border border-slate-200"></div>
                 </div>
 
-                <!-- Individual Audit Log -->
+                <!-- Individual Audit Log with Delete/Undo Function -->
                 <div class="pt-4 border-t border-slate-200">
-                    <h4 class="text-xs font-bold text-slate-700 mb-3 flex items-center gap-1.5">
-                        <i class="fa-solid fa-clock-rotate-left text-slate-500"></i> ประวัติกิจกรรมของผู้รับรายนี้ (Audit Log)
-                    </h4>
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                            <i class="fa-solid fa-clock-rotate-left text-slate-500"></i> ประวัติกิจกรรมของผู้รับรายนี้ (Audit Log)
+                        </h4>
+                        <span class="text-[11px] text-slate-400">*หากกดผิด สามารถกด "ยกเลิก" ในตารางเพื่อดึงยอดคืนได้</span>
+                    </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-xs">
                             <thead class="bg-slate-100 text-slate-600 font-semibold border-b border-slate-200">
@@ -131,6 +134,7 @@
                                     <th class="p-2.5">กิจกรรม</th>
                                     <th class="p-2.5">รายละเอียด / เหตุผล</th>
                                     <th class="p-2.5">ผู้บันทึก</th>
+                                    <th class="p-2.5 text-center">จัดการ</th>
                                 </tr>
                             </thead>
                             <tbody id="userAuditLogBody" class="divide-y divide-slate-100"></tbody>
@@ -188,6 +192,7 @@
                                 <th class="p-3">กิจกรรม</th>
                                 <th class="p-3">รายละเอียด</th>
                                 <th class="p-3">ผู้บันทึก</th>
+                                <th class="p-3 text-center">จัดการ</th>
                             </tr>
                         </thead>
                         <tbody id="globalAuditLogBody" class="divide-y divide-slate-100"></tbody>
@@ -212,8 +217,8 @@
         let currentSearchedName = "";
 
         function initData() {
-            const storedData = localStorage.getItem('deliveryData_v3');
-            const storedLogs = localStorage.getItem('auditLogs_v3');
+            const storedData = localStorage.getItem('deliveryData_v4');
+            const storedLogs = localStorage.getItem('auditLogs_v4');
 
             deliveryData = storedData ? JSON.parse(storedData) : defaultDeliveryData;
             auditLogs = storedLogs ? JSON.parse(storedLogs) : [];
@@ -221,8 +226,8 @@
         }
 
         function saveToLocalStorage() {
-            localStorage.setItem('deliveryData_v3', JSON.stringify(deliveryData));
-            localStorage.setItem('auditLogs_v3', JSON.stringify(auditLogs));
+            localStorage.setItem('deliveryData_v4', JSON.stringify(deliveryData));
+            localStorage.setItem('auditLogs_v4', JSON.stringify(auditLogs));
         }
 
         function switchTab(tab) {
@@ -302,7 +307,7 @@
             }
         }
 
-        // ฟังก์ชันอัปเดตผลการจัดส่งสด (สำเร็จ / ตีกลับ)
+        // บันทึกผลนำส่ง
         function recordDelivery(name, isSuccess) {
             const item = deliveryData.find(d => d.name === name);
             if (!item) return;
@@ -314,7 +319,58 @@
                 item.failed += 1;
             }
 
-            // คำนวณ Score และ Risk ใหม่ทันที
+            recalculateRiskScore(item);
+
+            const now = new Date();
+            const timeStr = now.toLocaleDateString('th-TH') + ' ' + now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+            
+            auditLogs.unshift({
+                id: Date.now(),
+                time: timeStr,
+                name: name,
+                action: isSuccess ? "DELIVERY_SUCCESS" : "DELIVERY_FAILED",
+                reason: isSuccess ? "บันทึกนำส่งพัสดุสำเร็จ (+1)" : "บันทึกพัสดุตีกลับ/ล้มเหลว (+1)",
+                admin: "Courier Staff"
+            });
+
+            saveToLocalStorage();
+            checkRisk();
+        }
+
+        // ฟังก์ชันยกเลิก/ลบรายการที่กดผิด (Undo Feature)
+        function deleteAuditLog(logId) {
+            if (!confirm("คุณต้องการยกเลิกรายการนี้เพื่อดึงยอดกลับใช่หรือไม่?")) return;
+
+            const index = auditLogs.findIndex(l => l.id === logId);
+            if (index === -1) return;
+
+            const log = auditLogs[index];
+            const item = deliveryData.find(d => d.name === log.name);
+
+            if (item) {
+                if (log.action === "DELIVERY_SUCCESS") {
+                    item.total = Math.max(0, item.total - 1);
+                    item.success = Math.max(0, item.success - 1);
+                } else if (log.action === "DELIVERY_FAILED") {
+                    item.total = Math.max(0, item.total - 1);
+                    item.failed = Math.max(0, item.failed - 1);
+                } else if (log.action === "BLACKLIST") {
+                    item.isBlacklisted = false;
+                    item.blacklistReason = "";
+                }
+
+                recalculateRiskScore(item);
+            }
+
+            auditLogs.splice(index, 1);
+            saveToLocalStorage();
+            
+            if (currentSearchedName) checkRisk();
+            updateDashboard();
+        }
+
+        // คำนวณ Risk Score & Level ใหม่
+        function recalculateRiskScore(item) {
             const failRate = item.total > 0 ? (item.failed / item.total) : 0;
             item.score = parseFloat(failRate.toFixed(2));
 
@@ -325,21 +381,6 @@
             } else {
                 item.risk = 0; // Low Risk
             }
-
-            // บันทึก Log
-            const now = new Date();
-            const timeStr = now.toLocaleDateString('th-TH') + ' ' + now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-            
-            auditLogs.unshift({
-                time: timeStr,
-                name: name,
-                action: isSuccess ? "DELIVERY_SUCCESS" : "DELIVERY_FAILED",
-                reason: isSuccess ? "บันทึกนำส่งพัสดุสำเร็จ (+1)" : "บันทึกพัสดุตีกลับ/ล้มเหลว (+1)",
-                admin: "Courier Staff"
-            });
-
-            saveToLocalStorage();
-            checkRisk();
         }
 
         function renderAdminControls(item) {
@@ -392,6 +433,7 @@
                 const timeStr = now.toLocaleDateString('th-TH') + ' ' + now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
                 
                 auditLogs.unshift({
+                    id: Date.now(),
                     time: timeStr,
                     name: name,
                     action: status ? "BLACKLIST" : "UNBLACKLIST",
@@ -409,7 +451,7 @@
             const logs = auditLogs.filter(l => l.name === name);
 
             if (logs.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="p-3 text-center text-slate-400">ยังไม่มีประวัติกิจกรรมสำหรับรายชื่อนี้</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="5" class="p-3 text-center text-slate-400">ยังไม่มีประวัติกิจกรรมสำหรับรายชื่อนี้</td></tr>`;
                 return;
             }
 
@@ -427,6 +469,11 @@
                         <td class="p-2.5 ${badgeClass}">${label}</td>
                         <td class="p-2.5 text-slate-700">${l.reason}</td>
                         <td class="p-2.5 text-slate-500">${l.admin}</td>
+                        <td class="p-2.5 text-center">
+                            <button onclick="deleteAuditLog(${l.id})" class="text-xs text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-2 py-1 rounded transition-colors" title="ยกเลิกรายการนี้">
+                                <i class="fa-solid fa-rotate-left mr-1"></i> ยกเลิก
+                            </button>
+                        </td>
                     </tr>
                 `;
             }).join('');
@@ -447,7 +494,7 @@
 
             const tbody = document.getElementById('globalAuditLogBody');
             if (auditLogs.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="p-3 text-center text-slate-400">ยังไม่มีประวัติกิจกรรมในระบบ</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="p-3 text-center text-slate-400">ยังไม่มีประวัติกิจกรรมในระบบ</td></tr>`;
                 return;
             }
 
@@ -458,14 +505,19 @@
                     <td class="p-3 font-bold">${l.action}</td>
                     <td class="p-3 text-slate-700">${l.reason}</td>
                     <td class="p-3 text-slate-500">${l.admin}</td>
+                    <td class="p-3 text-center">
+                        <button onclick="deleteAuditLog(${l.id})" class="text-xs text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-2.5 py-1 rounded transition-colors">
+                            <i class="fa-solid fa-rotate-left mr-1"></i> ยกเลิก
+                        </button>
+                    </td>
                 </tr>
             `).join('');
         }
 
         function clearLocalStorageData() {
             if (confirm('คุณต้องการรีเซ็ตข้อมูลทั้งหมดกลับเป็นค่าเริ่มต้นหรือไม่?')) {
-                localStorage.removeItem('deliveryData_v3');
-                localStorage.removeItem('auditLogs_v3');
+                localStorage.removeItem('deliveryData_v4');
+                localStorage.removeItem('auditLogs_v4');
                 initData();
                 updateDashboard();
                 if (currentSearchedName) checkRisk();
