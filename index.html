@@ -18,7 +18,7 @@
                     <i class="fa-solid fa-truck-shield text-indigo-600"></i>
                     Delivery Risk & Delivery Tracker
                 </h1>
-                <p class="text-xs text-slate-500 mt-1">ตรวจสอบความเสี่ยง บันทึกผลการจัดส่ง และแก้ไขรายการกดผิด (Undo)</p>
+                <p class="text-xs text-slate-500 mt-1">ตรวจสอบความเสี่ยง บันทึกผลการจัดส่ง พร้อมระบบป้องกันกดผิดและแจ้งเตือนอัตโนมัติ</p>
             </div>
             
             <div class="flex bg-slate-100 p-1 rounded-xl gap-1">
@@ -62,6 +62,22 @@
                     </div>
                 </div>
 
+                <!-- Auto-Blacklist Recommendation Alert -->
+                <div id="resAutoBlacklistRecommend" class="hidden bg-amber-50 border-2 border-amber-400 p-4 rounded-xl shadow-sm">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="flex items-start gap-3">
+                            <i class="fa-solid fa-triangle-exclamation text-amber-600 text-xl mt-0.5"></i>
+                            <div>
+                                <h4 class="font-bold text-xs text-amber-900 uppercase">💡 คำแนะนำระบบ (Auto-Blacklist Recommendation)</h4>
+                                <p id="recommendText" class="text-xs text-amber-800 mt-1">ผู้รับรายนี้มีอัตราส่งไม่สำเร็จสูงเกิน 60% หรือล้มเหลวต่อเนื่อง ระบบแนะนำให้เพิ่มเข้าบัญชีดำ</p>
+                            </div>
+                        </div>
+                        <button onclick="quickBlacklistFromRecommend()" class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg whitespace-nowrap transition-colors">
+                            <i class="fa-solid fa-user-slash mr-1"></i> เพิ่มเข้าบัญชีดำทันที
+                        </button>
+                    </div>
+                </div>
+
                 <div class="flex items-center justify-between border-b pb-4">
                     <div>
                         <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">ผลการประเมินประวัติ</span>
@@ -95,16 +111,26 @@
                     </div>
                 </div>
 
-                <!-- Delivery Action Control -->
-                <div class="pt-4 border-t border-slate-200 bg-slate-50/50 p-4 rounded-xl border">
-                    <h4 class="text-xs font-bold text-slate-700 mb-3 flex items-center gap-1.5">
+                <!-- Delivery Action Control with Tracking Input -->
+                <div class="pt-4 border-t border-slate-200 bg-slate-50/50 p-4 rounded-xl border space-y-3">
+                    <h4 class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                         <i class="fa-solid fa-boxes-packing text-indigo-600"></i> บันทึกผลการจัดส่งพัสดุรายการล่าสุด
                     </h4>
-                    <div class="flex flex-col sm:flex-row gap-2">
-                        <button onclick="recordDelivery(currentSearchedName, true)" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center gap-1.5">
+                    
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">เลขพัสดุ / Order ID (ตัวเลือกเสริม):</label>
+                        <div class="relative">
+                            <input type="text" id="trackingInput" placeholder="เช่น TH123456789TH / ORD-2026-089" 
+                                   class="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-1 focus:ring-indigo-500 pl-8">
+                            <i class="fa-solid fa-barcode absolute left-2.5 top-2.5 text-slate-400 text-xs"></i>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row gap-2 pt-1">
+                        <button onclick="requestConfirmDelivery(true)" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center gap-1.5">
                             <i class="fa-solid fa-circle-check"></i> บันทึก: ส่งสำเร็จ (+1)
                         </button>
-                        <button onclick="recordDelivery(currentSearchedName, false)" class="flex-1 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center gap-1.5">
+                        <button onclick="requestConfirmDelivery(false)" class="flex-1 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center gap-1.5">
                             <i class="fa-solid fa-circle-xmark"></i> บันทึก: ตีกลับ / ล้มเหลว (+1)
                         </button>
                     </div>
@@ -118,7 +144,7 @@
                     <div id="blacklistControls" class="bg-slate-50 p-4 rounded-xl border border-slate-200"></div>
                 </div>
 
-                <!-- Individual Audit Log with Delete/Undo Function -->
+                <!-- Individual Audit Log -->
                 <div class="pt-4 border-t border-slate-200">
                     <div class="flex items-center justify-between mb-3">
                         <h4 class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
@@ -131,6 +157,7 @@
                             <thead class="bg-slate-100 text-slate-600 font-semibold border-b border-slate-200">
                                 <tr>
                                     <th class="p-2.5">วัน-เวลา</th>
+                                    <th class="p-2.5">เลขพัสดุ / Order ID</th>
                                     <th class="p-2.5">กิจกรรม</th>
                                     <th class="p-2.5">รายละเอียด / เหตุผล</th>
                                     <th class="p-2.5">ผู้บันทึก</th>
@@ -189,6 +216,7 @@
                             <tr>
                                 <th class="p-3">วัน-เวลา</th>
                                 <th class="p-3">ชื่อผู้รับ</th>
+                                <th class="p-3">เลขพัสดุ / Order ID</th>
                                 <th class="p-3">กิจกรรม</th>
                                 <th class="p-3">รายละเอียด</th>
                                 <th class="p-3">ผู้บันทึก</th>
@@ -203,6 +231,36 @@
 
     </div>
 
+    <!-- Confirmation Modal (Pop-up ยืนยันก่อนบันทึก) -->
+    <div id="confirmModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-200 space-y-4 animate-in fade-in zoom-in duration-150">
+            <div class="flex items-center gap-3">
+                <div id="modalIconBg" class="w-10 h-10 rounded-full flex items-center justify-center bg-indigo-100 text-indigo-600">
+                    <i id="modalIcon" class="fa-solid fa-circle-question text-lg"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-slate-800 text-sm">ยืนยันการบันทึกรายการ</h3>
+                    <p class="text-xs text-slate-500">โปรดตรวจสอบความถูกต้องก่อนกดบันทึก</p>
+                </div>
+            </div>
+
+            <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs space-y-1.5">
+                <p class="text-slate-600">ผู้รับ: <span id="modalReceiverName" class="font-bold text-slate-800"></span></p>
+                <p class="text-slate-600">เลขพัสดุ/Order: <span id="modalTracking" class="font-bold text-indigo-600"></span></p>
+                <p class="text-slate-600">สถานะที่บันทึก: <span id="modalStatus" class="font-bold"></span></p>
+            </div>
+
+            <div class="flex gap-2 pt-2">
+                <button onclick="closeConfirmModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold py-2.5 rounded-lg transition-colors">
+                    ยกเลิก
+                </button>
+                <button id="btnConfirmSubmit" class="flex-1 text-white text-xs font-semibold py-2.5 rounded-lg transition-colors">
+                    ยืนยันบันทึก
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const defaultDeliveryData = [
             { name: "ธณกร", total: 52, failed: 27, success: 25, risk: 2, score: 0.52, isBlacklisted: false, blacklistReason: "" },
@@ -215,10 +273,11 @@
         let deliveryData = [];
         let auditLogs = [];
         let currentSearchedName = "";
+        let pendingDeliveryStatus = null;
 
         function initData() {
-            const storedData = localStorage.getItem('deliveryData_v4');
-            const storedLogs = localStorage.getItem('auditLogs_v4');
+            const storedData = localStorage.getItem('deliveryData_v5');
+            const storedLogs = localStorage.getItem('auditLogs_v5');
 
             deliveryData = storedData ? JSON.parse(storedData) : defaultDeliveryData;
             auditLogs = storedLogs ? JSON.parse(storedLogs) : [];
@@ -226,8 +285,8 @@
         }
 
         function saveToLocalStorage() {
-            localStorage.setItem('deliveryData_v4', JSON.stringify(deliveryData));
-            localStorage.setItem('auditLogs_v4', JSON.stringify(auditLogs));
+            localStorage.setItem('deliveryData_v5', JSON.stringify(deliveryData));
+            localStorage.setItem('auditLogs_v5', JSON.stringify(auditLogs));
         }
 
         function switchTab(tab) {
@@ -269,12 +328,21 @@
                 document.getElementById('resFailed').innerText = found.failed + ' ชิ้น';
 
                 const banner = document.getElementById('resBlacklistBanner');
+                const recommendBox = document.getElementById('resAutoBlacklistRecommend');
                 const badge = document.getElementById('resBadge');
                 const progressBar = document.getElementById('resProgressBar');
                 const scorePct = Math.round(found.score * 100);
                 
                 document.getElementById('resScoreText').innerText = scorePct + '%';
                 progressBar.style.width = scorePct + '%';
+
+                // Auto-Blacklist Recommendation logic (ถ้าเสี่ยงเกิน 60% และยังไม่ติด Blacklist)
+                if (!found.isBlacklisted && (found.score >= 0.60 || found.failed >= 3 && found.score >= 0.50)) {
+                    recommendBox.classList.remove('hidden');
+                    document.getElementById('recommendText').innerText = `ผู้รับรายนี้มีอัตราการส่งไม่สำเร็จสูงถึง ${scorePct}% (ตีกลับ ${found.failed} ชิ้น) ระบบแนะนำให้ติดบัญชีดำทันที`;
+                } else {
+                    recommendBox.classList.add('hidden');
+                }
 
                 if (found.isBlacklisted) {
                     banner.classList.remove('hidden');
@@ -307,9 +375,52 @@
             }
         }
 
-        // บันทึกผลนำส่ง
-        function recordDelivery(name, isSuccess) {
-            const item = deliveryData.find(d => d.name === name);
+        // เปิด Modal ยืนยันก่อนบันทึก
+        function requestConfirmDelivery(isSuccess) {
+            if (!currentSearchedName) return;
+            
+            pendingDeliveryStatus = isSuccess;
+            const tracking = document.getElementById('trackingInput').value.trim() || 'ไม่ได้ระบุ';
+
+            document.getElementById('modalReceiverName').innerText = currentSearchedName;
+            document.getElementById('modalTracking').innerText = tracking;
+
+            const modalStatus = document.getElementById('modalStatus');
+            const btnConfirm = document.getElementById('btnConfirmSubmit');
+            const iconBg = document.getElementById('modalIconBg');
+            const icon = document.getElementById('modalIcon');
+
+            if (isSuccess) {
+                modalStatus.innerText = "ส่งสำเร็จ (+1)";
+                modalStatus.className = "font-bold text-emerald-600";
+                btnConfirm.className = "flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2.5 rounded-lg transition-colors";
+                iconBg.className = "w-10 h-10 rounded-full flex items-center justify-center bg-emerald-100 text-emerald-600";
+                icon.className = "fa-solid fa-circle-check text-lg";
+            } else {
+                modalStatus.innerText = "ตีกลับ / ล้มเหลว (+1)";
+                modalStatus.className = "font-bold text-rose-600";
+                btnConfirm.className = "flex-1 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold py-2.5 rounded-lg transition-colors";
+                iconBg.className = "w-10 h-10 rounded-full flex items-center justify-center bg-rose-100 text-rose-600";
+                icon.className = "fa-solid fa-circle-xmark text-lg";
+            }
+
+            btnConfirm.onclick = executeDeliveryRecord;
+            document.getElementById('confirmModal').classList.remove('hidden');
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirmModal').classList.add('hidden');
+            pendingDeliveryStatus = null;
+        }
+
+        // ดำเนินการบันทึกหลังจากยืนยันแล้ว
+        function executeDeliveryRecord() {
+            if (pendingDeliveryStatus === null || !currentSearchedName) return;
+
+            const isSuccess = pendingDeliveryStatus;
+            const tracking = document.getElementById('trackingInput').value.trim() || '-';
+            const item = deliveryData.find(d => d.name === currentSearchedName);
+
             if (!item) return;
 
             item.total += 1;
@@ -327,17 +438,27 @@
             auditLogs.unshift({
                 id: Date.now(),
                 time: timeStr,
-                name: name,
+                name: currentSearchedName,
+                tracking: tracking,
                 action: isSuccess ? "DELIVERY_SUCCESS" : "DELIVERY_FAILED",
                 reason: isSuccess ? "บันทึกนำส่งพัสดุสำเร็จ (+1)" : "บันทึกพัสดุตีกลับ/ล้มเหลว (+1)",
                 admin: "Courier Staff"
             });
 
             saveToLocalStorage();
+            closeConfirmModal();
+            document.getElementById('trackingInput').value = ''; // เคลียร์ช่อง Tracking
             checkRisk();
         }
 
-        // ฟังก์ชันยกเลิก/ลบรายการที่กดผิด (Undo Feature)
+        function quickBlacklistFromRecommend() {
+            const item = deliveryData.find(d => d.name === currentSearchedName);
+            if (item) {
+                const autoReason = `ระบบแนะนำอัตโนมัติ: คะแนนความเสี่ยงสูงถึง ${Math.round(item.score*100)}% (ตีกลับ ${item.failed} รายการ)`;
+                toggleBlacklistWithReason(currentSearchedName, true, autoReason);
+            }
+        }
+
         function deleteAuditLog(logId) {
             if (!confirm("คุณต้องการยกเลิกรายการนี้เพื่อดึงยอดกลับใช่หรือไม่?")) return;
 
@@ -369,7 +490,6 @@
             updateDashboard();
         }
 
-        // คำนวณ Risk Score & Level ใหม่
         function recalculateRiskScore(item) {
             const failRate = item.total > 0 ? (item.failed / item.total) : 0;
             item.score = parseFloat(failRate.toFixed(2));
@@ -415,12 +535,17 @@
         }
 
         function toggleBlacklist(name, status) {
+            const reasonInput = document.getElementById('reasonInput');
+            const customReason = reasonInput ? reasonInput.value.trim() : "";
+            toggleBlacklistWithReason(name, status, customReason);
+        }
+
+        function toggleBlacklistWithReason(name, status, customReason) {
             const item = deliveryData.find(d => d.name === name);
             if (item) {
                 let logReason = "";
                 if (status) {
-                    const reason = document.getElementById('reasonInput').value.trim();
-                    logReason = reason || "ระบุเหตุผลโดยผู้ดูแลระบบ";
+                    logReason = customReason || "ระบุเหตุผลโดยผู้ดูแลระบบ";
                     item.isBlacklisted = true;
                     item.blacklistReason = logReason;
                 } else {
@@ -436,6 +561,7 @@
                     id: Date.now(),
                     time: timeStr,
                     name: name,
+                    tracking: "-",
                     action: status ? "BLACKLIST" : "UNBLACKLIST",
                     reason: logReason,
                     admin: "Admin System"
@@ -451,7 +577,7 @@
             const logs = auditLogs.filter(l => l.name === name);
 
             if (logs.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="p-3 text-center text-slate-400">ยังไม่มีประวัติกิจกรรมสำหรับรายชื่อนี้</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="p-3 text-center text-slate-400">ยังไม่มีประวัติกิจกรรมสำหรับรายชื่อนี้</td></tr>`;
                 return;
             }
 
@@ -466,11 +592,12 @@
                 return `
                     <tr class="hover:bg-slate-50">
                         <td class="p-2.5 text-slate-500">${l.time}</td>
+                        <td class="p-2.5 font-mono text-slate-700 font-semibold">${l.tracking || '-'}</td>
                         <td class="p-2.5 ${badgeClass}">${label}</td>
                         <td class="p-2.5 text-slate-700">${l.reason}</td>
                         <td class="p-2.5 text-slate-500">${l.admin}</td>
                         <td class="p-2.5 text-center">
-                            <button onclick="deleteAuditLog(${l.id})" class="text-xs text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-2 py-1 rounded transition-colors" title="ยกเลิกรายการนี้">
+                            <button onclick="deleteAuditLog(${l.id})" class="text-xs text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-2 py-1 rounded transition-colors" title="ยกเลิกรายการนี้เพื่อดึงยอดกลับ">
                                 <i class="fa-solid fa-rotate-left mr-1"></i> ยกเลิก
                             </button>
                         </td>
@@ -494,7 +621,7 @@
 
             const tbody = document.getElementById('globalAuditLogBody');
             if (auditLogs.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="p-3 text-center text-slate-400">ยังไม่มีประวัติกิจกรรมในระบบ</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="p-3 text-center text-slate-400">ยังไม่มีประวัติกิจกรรมในระบบ</td></tr>`;
                 return;
             }
 
@@ -502,6 +629,7 @@
                 <tr class="hover:bg-slate-50">
                     <td class="p-3 text-slate-500">${l.time}</td>
                     <td class="p-3 font-bold text-slate-800">${l.name}</td>
+                    <td class="p-3 font-mono text-slate-700 font-semibold">${l.tracking || '-'}</td>
                     <td class="p-3 font-bold">${l.action}</td>
                     <td class="p-3 text-slate-700">${l.reason}</td>
                     <td class="p-3 text-slate-500">${l.admin}</td>
@@ -516,8 +644,8 @@
 
         function clearLocalStorageData() {
             if (confirm('คุณต้องการรีเซ็ตข้อมูลทั้งหมดกลับเป็นค่าเริ่มต้นหรือไม่?')) {
-                localStorage.removeItem('deliveryData_v4');
-                localStorage.removeItem('auditLogs_v4');
+                localStorage.removeItem('deliveryData_v5');
+                localStorage.removeItem('auditLogs_v5');
                 initData();
                 updateDashboard();
                 if (currentSearchedName) checkRisk();
