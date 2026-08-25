@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบวิเคราะห์ความเสี่ยงและจัดการบัญชีดำพัสดุ</title>
+    <title>ระบบวิเคราะห์ความเสี่ยงและจัดการผลการจัดส่ง</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
@@ -11,47 +11,47 @@
 
     <div class="max-w-4xl mx-auto space-y-6">
         
-        <!-- Header & Tabs Navigation -->
+        <!-- Header & Navigation -->
         <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
                 <h1 class="text-xl font-bold text-slate-800 flex items-center gap-2">
                     <i class="fa-solid fa-truck-shield text-indigo-600"></i>
-                    Delivery Risk & Blacklist Analytics
+                    Delivery Risk & Delivery Tracker
                 </h1>
-                <p class="text-xs text-slate-500 mt-1">ระบบวิเคราะห์ความเสี่ยง ตรวจสอบ และจัดการระงับผู้รับสินค้า (Blacklist)</p>
+                <p class="text-xs text-slate-500 mt-1">ตรวจสอบความเสี่ยง บันทึกผลการจัดส่ง (สำเร็จ/ตีกลับ) และ Audit Log</p>
             </div>
             
             <div class="flex bg-slate-100 p-1 rounded-xl gap-1">
                 <button id="btnTabCheck" onclick="switchTab('check')" class="flex-1 sm:flex-none px-4 py-2 text-xs font-semibold rounded-lg transition-all bg-white text-indigo-600 shadow-sm">
-                    <i class="fa-solid fa-magnifying-glass mr-1"></i> ตรวจสอบผู้รับ
+                    <i class="fa-solid fa-magnifying-glass mr-1"></i> ตรวจสอบ / บันทึกผล
                 </button>
                 <button id="btnTabDash" onclick="switchTab('dash')" class="flex-1 sm:flex-none px-4 py-2 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition-all">
-                    <i class="fa-solid fa-chart-pie mr-1"></i> สถิติภาพรวม (Dynamic)
+                    <i class="fa-solid fa-chart-pie mr-1"></i> สถิติ & Audit Log
                 </button>
             </div>
         </div>
 
-        <!-- TAB 1: Individual Risk Checker & Blacklist Manager -->
+        <!-- TAB 1: Checker & Record Delivery -->
         <div id="paneCheck" class="space-y-6">
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                <label class="block text-sm font-semibold text-slate-700 mb-2">ระบุชื่อผู้รับเพื่อตรวจสอบความเสี่ยง / สถานะบัญชีดำ</label>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">ระบุชื่อผู้รับเพื่อตรวจสอบ / บันทึกผลการจัดส่งล่าสุด</label>
                 <div class="flex gap-2">
                     <div class="relative flex-1">
                         <input type="text" id="receiverInput" placeholder="ค้นหาชื่อ เช่น พรเมธี, ธณกร, นฤบดินทร์..." 
-                               class="w-full px-4 py-3 pl-10 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
+                               class="w-full px-4 py-3 pl-10 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
                         <i class="fa-solid fa-user absolute left-3.5 top-3.5 text-slate-400"></i>
                     </div>
-                    <button onclick="checkRisk()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-medium text-sm transition-colors flex items-center gap-2">
-                        <span>ตรวจสอบ</span>
+                    <button onclick="checkRisk()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-medium text-sm transition-colors">
+                        ตรวจสอบ
                     </button>
                 </div>
             </div>
 
             <!-- Result Box -->
-            <div id="resultBox" class="hidden bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+            <div id="resultBox" class="hidden bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-6">
                 
-                <!-- Blacklist Critical Banner (แสดงเฉพาะเมื่อถูกติดบัญชีดำ) -->
-                <div id="resBlacklistBanner" class="hidden bg-rose-900 text-white p-4 rounded-xl mb-6 shadow-sm border border-rose-800">
+                <!-- Blacklist Critical Banner -->
+                <div id="resBlacklistBanner" class="hidden bg-rose-900 text-white p-4 rounded-xl shadow-sm border border-rose-800">
                     <div class="flex items-start gap-3">
                         <i class="fa-solid fa-ban text-2xl text-rose-300 mt-0.5"></i>
                         <div class="flex-1">
@@ -62,7 +62,7 @@
                     </div>
                 </div>
 
-                <div class="flex items-center justify-between border-b pb-4 mb-4">
+                <div class="flex items-center justify-between border-b pb-4">
                     <div>
                         <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">ผลการประเมินประวัติ</span>
                         <h2 id="resName" class="text-2xl font-bold text-slate-800"></h2>
@@ -70,7 +70,7 @@
                     <span id="resBadge" class="px-3 py-1 rounded-full text-xs font-bold"></span>
                 </div>
 
-                <div class="grid grid-cols-3 gap-4 mb-6">
+                <div class="grid grid-cols-3 gap-4">
                     <div class="bg-slate-50 p-3 rounded-xl text-center">
                         <span class="text-xs text-slate-500">จัดส่งทั้งหมด</span>
                         <p id="resTotal" class="text-lg font-bold text-slate-700 mt-1">-</p>
@@ -85,7 +85,7 @@
                     </div>
                 </div>
 
-                <div class="mb-6">
+                <div>
                     <div class="flex justify-between text-xs font-semibold mb-1">
                         <span class="text-slate-600">คะแนนดัชนีความเสี่ยง (Risk Score)</span>
                         <span id="resScoreText" class="text-slate-800"></span>
@@ -95,13 +95,46 @@
                     </div>
                 </div>
 
-                <!-- Admin Blacklist Action Form -->
+                <!-- NEW: Quick Delivery Record Action -->
+                <div class="pt-4 border-t border-slate-200 bg-slate-50/50 p-4 rounded-xl border">
+                    <h4 class="text-xs font-bold text-slate-700 mb-3 flex items-center gap-1.5">
+                        <i class="fa-solid fa-boxes-packing text-indigo-600"></i> บันทึกผลการจัดส่งพัสดุรายการล่าสุด
+                    </h4>
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <button onclick="recordDelivery(currentSearchedName, true)" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-circle-check"></i> บันทึก: ส่งสำเร็จ (+1)
+                        </button>
+                        <button onclick="recordDelivery(currentSearchedName, false)" class="flex-1 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-circle-xmark"></i> บันทึก: ตีกลับ / ล้มเหลว (+1)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Admin Action Control -->
                 <div class="pt-4 border-t border-slate-200">
                     <h4 class="text-xs font-bold text-slate-700 mb-2 flex items-center gap-1.5">
-                        <i class="fa-solid fa-user-gear text-slate-500"></i> จัดการสถานะบัญชีดำ (Blacklist Management)
+                        <i class="fa-solid fa-user-gear text-slate-500"></i> จัดการสถานะบัญชีดำ (Blacklist Control)
                     </h4>
-                    <div id="blacklistControls" class="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                        <!-- Dynamic Controls Content -->
+                    <div id="blacklistControls" class="bg-slate-50 p-4 rounded-xl border border-slate-200"></div>
+                </div>
+
+                <!-- Individual Audit Log -->
+                <div class="pt-4 border-t border-slate-200">
+                    <h4 class="text-xs font-bold text-slate-700 mb-3 flex items-center gap-1.5">
+                        <i class="fa-solid fa-clock-rotate-left text-slate-500"></i> ประวัติกิจกรรมของผู้รับรายนี้ (Audit Log)
+                    </h4>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-100 text-slate-600 font-semibold border-b border-slate-200">
+                                <tr>
+                                    <th class="p-2.5">วัน-เวลา</th>
+                                    <th class="p-2.5">กิจกรรม</th>
+                                    <th class="p-2.5">รายละเอียด / เหตุผล</th>
+                                    <th class="p-2.5">ผู้บันทึก</th>
+                                </tr>
+                            </thead>
+                            <tbody id="userAuditLogBody" class="divide-y divide-slate-100"></tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -111,7 +144,7 @@
             </div>
         </div>
 
-        <!-- TAB 2: Dynamic System Statistics & Blacklist Overview -->
+        <!-- TAB 2: Dashboard & Global Audit Log -->
         <div id="paneDash" class="hidden space-y-6">
             <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
                 <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
@@ -136,21 +169,29 @@
                 </div>
             </div>
 
+            <!-- Global Audit Log Section -->
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
-                <h3 class="text-sm font-bold text-slate-800">สัดส่วนระดับความเสี่ยงในระบบ</h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="bg-emerald-50 border border-emerald-200 p-4 rounded-xl">
-                        <span class="text-xs font-semibold text-emerald-700">🟢 ความเสี่ยงต่ำ (Low Risk)</span>
-                        <p id="stat-low-risk" class="text-xl font-bold text-emerald-900 mt-1">0 ราย</p>
-                    </div>
-                    <div class="bg-amber-50 border border-amber-200 p-4 rounded-xl">
-                        <span class="text-xs font-semibold text-amber-700">🟡 ความเสี่ยงปานกลาง (Medium Risk)</span>
-                        <p id="stat-mid-risk" class="text-xl font-bold text-amber-900 mt-1">0 ราย</p>
-                    </div>
-                    <div class="bg-rose-50 border border-rose-200 p-4 rounded-xl">
-                        <span class="text-xs font-semibold text-rose-700">🔴 ความเสี่ยงสูง (High Risk)</span>
-                        <p id="stat-high-risk" class="text-xl font-bold text-rose-900 mt-1">0 ราย</p>
-                    </div>
+                <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-list-check text-indigo-600"></i> ประวัติกิจกรรมทั้งหมดในระบบ (System Audit Trail)
+                    </h3>
+                    <button onclick="clearLocalStorageData()" class="text-xs text-rose-600 hover:text-rose-800 font-medium">
+                        <i class="fa-solid fa-trash-can mr-1"></i> รีเซ็ตระบบ
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-100 text-slate-600 font-semibold border-b border-slate-200">
+                            <tr>
+                                <th class="p-3">วัน-เวลา</th>
+                                <th class="p-3">ชื่อผู้รับ</th>
+                                <th class="p-3">กิจกรรม</th>
+                                <th class="p-3">รายละเอียด</th>
+                                <th class="p-3">ผู้บันทึก</th>
+                            </tr>
+                        </thead>
+                        <tbody id="globalAuditLogBody" class="divide-y divide-slate-100"></tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -158,56 +199,32 @@
     </div>
 
     <script>
-        // ชุดข้อมูลจริงทั้ง 43 รายการ พร้อมฟิลด์ isBlacklisted และ blacklistReason
-        const deliveryData = [
-            { name: "ธณกร", total: 52, failed: 27, success: 25, risk: 0, score: 0.21, isBlacklisted: false, blacklistReason: "" },
-            { name: "นรินทร์", total: 75, failed: 16, success: 59, risk: 0, score: 0.09, isBlacklisted: false, blacklistReason: "" },
-            { name: "ปาลิดา", total: 30, failed: 2, success: 28, risk: 0, score: 0.05, isBlacklisted: false, blacklistReason: "" },
-            { name: "นฤบดินทร์", total: 140, failed: 0, success: 140, risk: 0, score: 0.05, isBlacklisted: false, blacklistReason: "" },
-            { name: "เพชรทักษิณ", total: 62, failed: 21, success: 41, risk: 2, score: 0.87, isBlacklisted: false, blacklistReason: "" },
-            { name: "พรเมธี", total: 35, failed: 23, success: 12, risk: 2, score: 0.93, isBlacklisted: true, blacklistReason: "ปฏิเสธการชำระเงิน COD และปิดเครื่องใส่พนักงานขนส่ง 3 ครั้งติด" },
-            { name: "นิภาพร", total: 48, failed: 24, success: 24, risk: 2, score: 0.90, isBlacklisted: false, blacklistReason: "" },
-            { name: "มินติยา", total: 39, failed: 1, success: 38, risk: 0, score: 0.05, isBlacklisted: false, blacklistReason: "" },
-            { name: "ญาณิณ", total: 2, failed: 1, success: 1, risk: 1, score: 0.65, isBlacklisted: false, blacklistReason: "" },
-            { name: "อนันทพร", total: 36, failed: 4, success: 32, risk: 0, score: 0.05, isBlacklisted: false, blacklistReason: "" },
-            { name: "ชลดา", total: 18, failed: 10, success: 8, risk: 1, score: 0.67, isBlacklisted: false, blacklistReason: "" },
-            { name: "วรโชติ", total: 62, failed: 9, success: 53, risk: 0, score: 0.06, isBlacklisted: false, blacklistReason: "" },
-            { name: "กิตติคุณ", total: 60, failed: 13, success: 47, risk: 0, score: 0.09, isBlacklisted: false, blacklistReason: "" },
-            { name: "ปัณณิชาภรณ์", total: 1, failed: 0, success: 1, risk: 0, score: 0.05, isBlacklisted: false, blacklistReason: "" },
-            { name: "อารยา", total: 23, failed: 9, success: 14, risk: 0, score: 0.16, isBlacklisted: false, blacklistReason: "" },
-            { name: "ชลธิศ", total: 47, failed: 19, success: 28, risk: 0, score: 0.16, isBlacklisted: false, blacklistReason: "" },
-            { name: "ปิยะฉัตร", total: 27, failed: 7, success: 20, risk: 0, score: 0.10, isBlacklisted: false, blacklistReason: "" },
-            { name: "จิรายุ", total: 52, failed: 16, success: 36, risk: 1, score: 0.59, isBlacklisted: false, blacklistReason: "" },
-            { name: "แอลวิน", total: 13, failed: 13, success: 0, risk: 0, score: 0.40, isBlacklisted: false, blacklistReason: "" },
-            { name: "เกศณี", total: 28, failed: 9, success: 19, risk: 0, score: 0.13, isBlacklisted: false, blacklistReason: "" },
-            { name: "ระภีภัทร", total: 62, failed: 2, success: 60, risk: 0, score: 0.05, isBlacklisted: false, blacklistReason: "" },
-            { name: "กีรติ", total: 27, failed: 4, success: 23, risk: 0, score: 0.06, isBlacklisted: false, blacklistReason: "" },
-            { name: "ปิณณิชาภรณ์", total: 79, failed: 5, success: 74, risk: 0, score: 0.05, isBlacklisted: false, blacklistReason: "" },
-            { name: "สิงหรัตน์", total: 52, failed: 8, success: 44, risk: 0, score: 0.06, isBlacklisted: false, blacklistReason: "" },
-            { name: "ขติยา", total: 2, failed: 0, success: 2, risk: 0, score: 0.05, isBlacklisted: false, blacklistReason: "" },
-            { name: "ธัญธร", total: 53, failed: 20, success: 33, risk: 1, score: 0.61, isBlacklisted: false, blacklistReason: "" },
-            { name: "ธีรภัทร์", total: 38, failed: 8, success: 30, risk: 0, score: 0.08, isBlacklisted: false, blacklistReason: "" },
-            { name: "จรรยาภรณ์", total: 73, failed: 9, success: 64, risk: 0, score: 0.05, isBlacklisted: false, blacklistReason: "" },
-            { name: "กมลรัตน์", total: 19, failed: 9, success: 10, risk: 0, score: 0.19, isBlacklisted: false, blacklistReason: "" },
-            { name: "อารยาพร", total: 39, failed: 15, success: 24, risk: 0, score: 0.15, isBlacklisted: false, blacklistReason: "" },
-            { name: "ประภาพร", total: 60, failed: 15, success: 45, risk: 0, score: 0.10, isBlacklisted: false, blacklistReason: "" },
-            { name: "อริษา", total: 38, failed: 13, success: 25, risk: 0, score: 0.14, isBlacklisted: false, blacklistReason: "" },
-            { name: "มินทร์ลดา", total: 25, failed: 0, success: 25, risk: 0, score: 0.05, isBlacklisted: false, blacklistReason: "" },
-            { name: "ปนัดดา", total: 41, failed: 0, success: 41, risk: 0, score: 0.05, isBlacklisted: false, blacklistReason: "" },
-            { name: "บัญญพนธ์", total: 8, failed: 4, success: 4, risk: 0, score: 0.20, isBlacklisted: false, blacklistReason: "" },
-            { name: "วันวิสา", total: 22, failed: 6, success: 16, risk: 1, score: 0.58, isBlacklisted: false, blacklistReason: "" },
-            { name: "ณัฐนิชา", total: 28, failed: 12, success: 16, risk: 1, score: 0.63, isBlacklisted: false, blacklistReason: "" },
-            { name: "ยาซีน", total: 49, failed: 35, success: 14, risk: 0, score: 0.29, isBlacklisted: false, blacklistReason: "" },
-            { name: "ศุภวิชญ์", total: 37, failed: 17, success: 20, risk: 0, score: 0.18, isBlacklisted: false, blacklistReason: "" },
-            { name: "พฤฒิตนัย", total: 32, failed: 12, success: 20, risk: 0, score: 0.15, isBlacklisted: false, blacklistReason: "" },
-            { name: "ศุภชัย", total: 58, failed: 21, success: 37, risk: 0, score: 0.14, isBlacklisted: false, blacklistReason: "" },
-            { name: "สิริกร", total: 2, failed: 1, success: 1, risk: 1, score: 0.65, isBlacklisted: false, blacklistReason: "" },
-            { name: "คอปเปอร์", total: 100, failed: 0, success: 100, risk: 0, score: 0.05, isBlacklisted: false, blacklistReason: "" }
+        const defaultDeliveryData = [
+            { name: "ธณกร", total: 52, failed: 27, success: 25, risk: 2, score: 0.52, isBlacklisted: false, blacklistReason: "" },
+            { name: "นรินทร์", total: 75, failed: 16, success: 59, risk: 1, score: 0.21, isBlacklisted: false, blacklistReason: "" },
+            { name: "ปาลิดา", total: 30, failed: 2, success: 28, risk: 0, score: 0.07, isBlacklisted: false, blacklistReason: "" },
+            { name: "นฤบดินทร์", total: 140, failed: 0, success: 140, risk: 0, score: 0.00, isBlacklisted: false, blacklistReason: "" },
+            { name: "พรเมธี", total: 35, failed: 23, success: 12, risk: 2, score: 0.66, isBlacklisted: true, blacklistReason: "ปฏิเสธการชำระเงิน COD และปิดเครื่องใส่พนักงานขนส่ง 3 ครั้งติด" }
         ];
 
+        let deliveryData = [];
+        let auditLogs = [];
         let currentSearchedName = "";
 
-        // สลับ Tab
+        function initData() {
+            const storedData = localStorage.getItem('deliveryData_v3');
+            const storedLogs = localStorage.getItem('auditLogs_v3');
+
+            deliveryData = storedData ? JSON.parse(storedData) : defaultDeliveryData;
+            auditLogs = storedLogs ? JSON.parse(storedLogs) : [];
+            saveToLocalStorage();
+        }
+
+        function saveToLocalStorage() {
+            localStorage.setItem('deliveryData_v3', JSON.stringify(deliveryData));
+            localStorage.setItem('auditLogs_v3', JSON.stringify(auditLogs));
+        }
+
         function switchTab(tab) {
             const paneCheck = document.getElementById('paneCheck');
             const paneDash = document.getElementById('paneDash');
@@ -217,27 +234,25 @@
             if (tab === 'check') {
                 paneCheck.classList.remove('hidden');
                 paneDash.classList.add('hidden');
-                btnTabCheck.className = "flex-1 sm:flex-none px-4 py-2 text-xs font-semibold rounded-lg transition-all bg-white text-indigo-600 shadow-sm";
-                btnTabDash.className = "flex-1 sm:flex-none px-4 py-2 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition-all";
+                btnTabCheck.className = "flex-1 sm:flex-none px-4 py-2 text-xs font-semibold rounded-lg bg-white text-indigo-600 shadow-sm";
+                btnTabDash.className = "flex-1 sm:flex-none px-4 py-2 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900";
             } else {
                 paneCheck.classList.add('hidden');
                 paneDash.classList.remove('hidden');
-                btnTabDash.className = "flex-1 sm:flex-none px-4 py-2 text-xs font-semibold rounded-lg transition-all bg-white text-indigo-600 shadow-sm";
-                btnTabCheck.className = "flex-1 sm:flex-none px-4 py-2 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition-all";
+                btnTabDash.className = "flex-1 sm:flex-none px-4 py-2 text-xs font-semibold rounded-lg bg-white text-indigo-600 shadow-sm";
+                btnTabCheck.className = "flex-1 sm:flex-none px-4 py-2 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900";
                 updateDashboard();
             }
         }
 
-        // ค้นหาและแสดงความเสี่ยง + สถานะบัญชีดำ
         function checkRisk() {
             const name = document.getElementById('receiverInput').value.trim();
-            const resultBox = document.getElementById('resultBox');
-            const notFoundBox = document.getElementById('notFoundBox');
-
             if (!name) return;
             currentSearchedName = name;
 
             const found = deliveryData.find(item => item.name === name);
+            const resultBox = document.getElementById('resultBox');
+            const notFoundBox = document.getElementById('notFoundBox');
 
             if (found) {
                 notFoundBox.classList.add('hidden');
@@ -256,11 +271,9 @@
                 document.getElementById('resScoreText').innerText = scorePct + '%';
                 progressBar.style.width = scorePct + '%';
 
-                // กรณีติดบัญชีดำ (Blacklisted)
                 if (found.isBlacklisted) {
                     banner.classList.remove('hidden');
                     document.getElementById('resBlacklistReason').innerText = 'สาเหตุ: ' + (found.blacklistReason || 'ระบุเหตุผลโดยผู้ดูแลระบบ');
-                    
                     badge.innerText = '⛔ ติดบัญชีดำ (BLACKLISTED)';
                     badge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-rose-900 text-white animate-pulse';
                     progressBar.className = 'h-full transition-all duration-500 rounded-full bg-rose-900';
@@ -281,23 +294,61 @@
                     }
                 }
 
-                // Render ส่วนปุ่มควบคุม Admin
                 renderAdminControls(found);
-
+                renderUserAuditLogs(found.name);
             } else {
                 resultBox.classList.add('hidden');
                 notFoundBox.classList.remove('hidden');
             }
         }
 
-        // แสดงฟอร์มสลับสถานะบัญชีดำ
+        // ฟังก์ชันอัปเดตผลการจัดส่งสด (สำเร็จ / ตีกลับ)
+        function recordDelivery(name, isSuccess) {
+            const item = deliveryData.find(d => d.name === name);
+            if (!item) return;
+
+            item.total += 1;
+            if (isSuccess) {
+                item.success += 1;
+            } else {
+                item.failed += 1;
+            }
+
+            // คำนวณ Score และ Risk ใหม่ทันที
+            const failRate = item.total > 0 ? (item.failed / item.total) : 0;
+            item.score = parseFloat(failRate.toFixed(2));
+
+            if (item.score >= 0.40) {
+                item.risk = 2; // High Risk
+            } else if (item.score >= 0.20) {
+                item.risk = 1; // Medium Risk
+            } else {
+                item.risk = 0; // Low Risk
+            }
+
+            // บันทึก Log
+            const now = new Date();
+            const timeStr = now.toLocaleDateString('th-TH') + ' ' + now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+            
+            auditLogs.unshift({
+                time: timeStr,
+                name: name,
+                action: isSuccess ? "DELIVERY_SUCCESS" : "DELIVERY_FAILED",
+                reason: isSuccess ? "บันทึกนำส่งพัสดุสำเร็จ (+1)" : "บันทึกพัสดุตีกลับ/ล้มเหลว (+1)",
+                admin: "Courier Staff"
+            });
+
+            saveToLocalStorage();
+            checkRisk();
+        }
+
         function renderAdminControls(item) {
             const ctrl = document.getElementById('blacklistControls');
             if (item.isBlacklisted) {
                 ctrl.innerHTML = `
                     <div class="flex flex-col sm:flex-row items-sm-center justify-between gap-3">
                         <div class="text-xs text-slate-600">
-                            <span class="font-bold text-rose-600">สถานะปัจจุบัน:</span> ติดบัญชีดำแล้ว
+                            <span class="font-bold text-rose-600">สถานะปัจจุบัน:</span> ติดบัญชีดำเรียบร้อยแล้ว
                         </div>
                         <button onclick="toggleBlacklist('${item.name}', false)" class="bg-slate-700 hover:bg-slate-800 text-white text-xs px-4 py-2 rounded-lg font-medium transition-colors">
                             <i class="fa-solid fa-unlock mr-1"></i> ปลดล็อคออกจากบัญชีดำ
@@ -322,32 +373,70 @@
             }
         }
 
-        // ปรับเปลี่ยนสถานะบัญชีดำ Dynamic
         function toggleBlacklist(name, status) {
             const item = deliveryData.find(d => d.name === name);
             if (item) {
+                let logReason = "";
                 if (status) {
                     const reason = document.getElementById('reasonInput').value.trim();
+                    logReason = reason || "ระบุเหตุผลโดยผู้ดูแลระบบ";
                     item.isBlacklisted = true;
-                    item.blacklistReason = reason || "ระบุเหตุผลโดยผู้ดูแลระบบ";
+                    item.blacklistReason = logReason;
                 } else {
+                    logReason = "ปลดล็อคออกจากบัญชีดำ";
                     item.isBlacklisted = false;
                     item.blacklistReason = "";
                 }
+
+                const now = new Date();
+                const timeStr = now.toLocaleDateString('th-TH') + ' ' + now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+                
+                auditLogs.unshift({
+                    time: timeStr,
+                    name: name,
+                    action: status ? "BLACKLIST" : "UNBLACKLIST",
+                    reason: logReason,
+                    admin: "Admin System"
+                });
+
+                saveToLocalStorage();
                 checkRisk();
             }
         }
 
-        // ประมวลผลและอัปเดต Dashboard ภาพรวม
+        function renderUserAuditLogs(name) {
+            const tbody = document.getElementById('userAuditLogBody');
+            const logs = auditLogs.filter(l => l.name === name);
+
+            if (logs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="p-3 text-center text-slate-400">ยังไม่มีประวัติกิจกรรมสำหรับรายชื่อนี้</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = logs.map(l => {
+                let badgeClass = "text-slate-600";
+                let label = l.action;
+                if (l.action === 'DELIVERY_SUCCESS') { badgeClass = "text-emerald-600 font-bold"; label = "📦 จัดส่งสำเร็จ"; }
+                if (l.action === 'DELIVERY_FAILED') { badgeClass = "text-rose-600 font-bold"; label = "⚠️ ตีกลับ/ล้มเหลว"; }
+                if (l.action === 'BLACKLIST') { badgeClass = "text-rose-900 font-bold"; label = "⛔ ติดบัญชีดำ"; }
+                if (l.action === 'UNBLACKLIST') { badgeClass = "text-indigo-600 font-bold"; label = "🔓 ปลดล็อค"; }
+
+                return `
+                    <tr class="hover:bg-slate-50">
+                        <td class="p-2.5 text-slate-500">${l.time}</td>
+                        <td class="p-2.5 ${badgeClass}">${label}</td>
+                        <td class="p-2.5 text-slate-700">${l.reason}</td>
+                        <td class="p-2.5 text-slate-500">${l.admin}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
         function updateDashboard() {
             const totalReceivers = deliveryData.length;
             const totalDeliveries = deliveryData.reduce((sum, item) => sum + item.total, 0);
             const totalFailed = deliveryData.reduce((sum, item) => sum + item.failed, 0);
-            const failRate = ((totalFailed / totalDeliveries) * 100).toFixed(1);
-
-            const lowRisk = deliveryData.filter(item => item.risk === 0).length;
-            const midRisk = deliveryData.filter(item => item.risk === 1).length;
-            const highRisk = deliveryData.filter(item => item.risk === 2).length;
+            const failRate = totalDeliveries > 0 ? ((totalFailed / totalDeliveries) * 100).toFixed(1) : 0;
             const blacklistedCount = deliveryData.filter(item => item.isBlacklisted).length;
 
             document.getElementById('stat-total-receivers').innerText = totalReceivers.toLocaleString() + ' ราย';
@@ -356,12 +445,34 @@
             document.getElementById('stat-fail-rate').innerText = failRate + '%';
             document.getElementById('stat-blacklisted-count').innerText = blacklistedCount + ' ราย';
 
-            document.getElementById('stat-low-risk').innerText = lowRisk + ' ราย (' + ((lowRisk/totalReceivers)*100).toFixed(1) + '%)';
-            document.getElementById('stat-mid-risk').innerText = midRisk + ' ราย (' + ((midRisk/totalReceivers)*100).toFixed(1) + '%)';
-            document.getElementById('stat-high-risk').innerText = highRisk + ' ราย (' + ((highRisk/totalReceivers)*100).toFixed(1) + '%)';
+            const tbody = document.getElementById('globalAuditLogBody');
+            if (auditLogs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-3 text-center text-slate-400">ยังไม่มีประวัติกิจกรรมในระบบ</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = auditLogs.map(l => `
+                <tr class="hover:bg-slate-50">
+                    <td class="p-3 text-slate-500">${l.time}</td>
+                    <td class="p-3 font-bold text-slate-800">${l.name}</td>
+                    <td class="p-3 font-bold">${l.action}</td>
+                    <td class="p-3 text-slate-700">${l.reason}</td>
+                    <td class="p-3 text-slate-500">${l.admin}</td>
+                </tr>
+            `).join('');
         }
 
-        // กด Enter ในช่องค้นหา
+        function clearLocalStorageData() {
+            if (confirm('คุณต้องการรีเซ็ตข้อมูลทั้งหมดกลับเป็นค่าเริ่มต้นหรือไม่?')) {
+                localStorage.removeItem('deliveryData_v3');
+                localStorage.removeItem('auditLogs_v3');
+                initData();
+                updateDashboard();
+                if (currentSearchedName) checkRisk();
+            }
+        }
+
+        initData();
         document.getElementById('receiverInput').addEventListener('keypress', function (e) {
             if (e.key === 'Enter') checkRisk();
         });
