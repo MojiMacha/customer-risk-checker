@@ -177,6 +177,21 @@
 
         <!-- TAB 2: Dashboard & Global Audit Log -->
         <div id="paneDash" class="hidden space-y-6">
+
+            <!-- Export Header Card (ส่วนใหม่: ปุ่มดาวน์โหลดไฟล์ลูกค้าปัจจุบัน) -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-file-export text-indigo-600"></i> ดาวน์โหลดรายงานข้อมูลลูกค้าปัจจุบัน (Customer Data Export)
+                    </h2>
+                    <p class="text-xs text-slate-500 mt-1">ส่งออกสถิติประวัติการจัดส่งและความเสี่ยงของผู้รับทุกคน ณ ปัจจุบัน เป็นไฟล์ CSV (เปิดใน Excel ได้ภาษาไทยไม่ร่วง)</p>
+                </div>
+                <button onclick="exportCustomerDataCSV()" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-5 py-2.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 whitespace-nowrap">
+                    <i class="fa-solid fa-file-csv text-base"></i> ดาวน์โหลดข้อมูลลูกค้า (CSV)
+                </button>
+            </div>
+
+            <!-- Dashboard Stats Cards -->
             <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
                 <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
                     <p class="text-xs text-slate-500 font-medium">ผู้รับทั้งหมด</p>
@@ -233,7 +248,7 @@
 
     <!-- Confirmation Modal (Pop-up ยืนยันก่อนบันทึก) -->
     <div id="confirmModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-200 space-y-4 animate-in fade-in zoom-in duration-150">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-200 space-y-4">
             <div class="flex items-center gap-3">
                 <div id="modalIconBg" class="w-10 h-10 rounded-full flex items-center justify-center bg-indigo-100 text-indigo-600">
                     <i id="modalIcon" class="fa-solid fa-circle-question text-lg"></i>
@@ -494,145 +509,103 @@
             }
         }
 
-        function deleteAuditLog(logId) {
-            if (!confirm("คุณต้องการยกเลิกรายการนี้เพื่อดึงยอดกลับใช่หรือไม่?")) return;
-
-            const index = auditLogs.findIndex(l => l.id === logId);
-            if (index === -1) return;
-
-            const log = auditLogs[index];
-            const item = deliveryData.find(d => d.name === log.name);
-
-            if (item) {
-                if (log.action === "DELIVERY_SUCCESS") {
-                    item.total = Math.max(0, item.total - 1);
-                    item.success = Math.max(0, item.success - 1);
-                } else if (log.action === "DELIVERY_FAILED") {
-                    item.total = Math.max(0, item.total - 1);
-                    item.failed = Math.max(0, item.failed - 1);
-                } else if (log.action === "BLACKLIST") {
-                    item.isBlacklisted = false;
-                    item.blacklistReason = "";
-                }
-
-                recalculateRiskScore(item);
-            }
-
-            auditLogs.splice(index, 1);
-            saveToLocalStorage();
-            
-            if (currentSearchedName) checkRisk();
-            updateDashboard();
-        }
-
         function recalculateRiskScore(item) {
-            const failRate = item.total > 0 ? (item.failed / item.total) : 0;
-            item.score = parseFloat(failRate.toFixed(2));
-
-            if (item.score >= 0.40) {
+            if (item.total === 0) {
+                item.score = 0;
+                item.risk = 0;
+                return;
+            }
+            item.score = item.failed / item.total;
+            if (item.score >= 0.40 || item.failed >= 10) {
                 item.risk = 2;
-            } else if (item.score >= 0.20) {
+            } else if (item.score >= 0.20 || item.failed >= 3) {
                 item.risk = 1;
             } else {
                 item.risk = 0;
             }
         }
 
+        function toggleBlacklistWithReason(name, status, reason = "") {
+            const item = deliveryData.find(d => d.name === name);
+            if (!item) return;
+
+            item.isBlacklisted = status;
+            item.blacklistReason = status ? (reason || "ระบุเหตุผลโดยผู้ดูแลระบบ") : "";
+
+            const now = new Date();
+            const timeStr = now.toLocaleDateString('th-TH') + ' ' + now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+
+            auditLogs.unshift({
+                id: Date.now(),
+                time: timeStr,
+                name: item.name,
+                tracking: "-",
+                action: status ? "BLACKLIST_ADD" : "BLACKLIST_REMOVE",
+                reason: status ? `เพิ่มเข้าบัญชีดำ (${item.blacklistReason})` : "ปลดออกจากบัญชีดำ",
+                admin: "Admin"
+            });
+
+            saveToLocalStorage();
+            checkRisk();
+        }
+
         function renderAdminControls(item) {
-            const ctrl = document.getElementById('blacklistControls');
+            const container = document.getElementById('blacklistControls');
             if (item.isBlacklisted) {
-                ctrl.innerHTML = `
-                    <div class="flex flex-col sm:flex-row items-sm-center justify-between gap-3">
-                        <div class="text-xs text-slate-600">
-                            <span class="font-bold text-rose-600">สถานะปัจจุบัน:</span> ติดบัญชีดำเรียบร้อยแล้ว
-                        </div>
-                        <button onclick="toggleBlacklist('${item.name}', false)" class="bg-slate-700 hover:bg-slate-800 text-white text-xs px-4 py-2 rounded-lg font-medium transition-colors">
-                            <i class="fa-solid fa-unlock mr-1"></i> ปลดล็อคออกจากบัญชีดำ
+                container.innerHTML = `
+                    <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
+                        <p class="text-xs text-rose-700 font-medium">
+                            <i class="fa-solid fa-circle-info mr-1"></i> ปัจจุบันติดบัญชีดำ: ${item.blacklistReason || 'ไม่มีระบุเหตุผล'}
+                        </p>
+                        <button onclick="toggleBlacklistWithReason('${item.name}', false)" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors">
+                            <i class="fa-solid fa-user-check mr-1"></i> ปลดออกจากบัญชีดำ
                         </button>
                     </div>
                 `;
             } else {
-                ctrl.innerHTML = `
-                    <div class="space-y-3">
-                        <div>
-                            <label class="block text-[11px] font-semibold text-slate-600 mb-1">สาเหตุการบันทึกติดบัญชีดำ:</label>
-                            <input type="text" id="reasonInput" placeholder="เช่น แจ้งที่อยู่ปลอม, แสดงกิริยาไม่เหมาะสม, ปฏิเสธจ่าย COD..." 
-                                   class="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-1 focus:ring-rose-500">
-                        </div>
-                        <div class="flex justify-end">
-                            <button onclick="toggleBlacklist('${item.name}', true)" class="bg-rose-600 hover:bg-rose-700 text-white text-xs px-4 py-2 rounded-lg font-medium transition-colors">
-                                <i class="fa-solid fa-user-slash mr-1"></i> เพิ่มรายชื่อนี้เข้าบัญชีดำ
-                            </button>
-                        </div>
+                container.innerHTML = `
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <input type="text" id="blacklistReasonInput" placeholder="ระบุเหตุผลในการเพิ่มเข้าบัญชีดำ (เช่น ปฏิเสธชำระเงิน, เลี่ยงรับสาย)..." 
+                               class="flex-1 px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-1 focus:ring-rose-500">
+                        <button onclick="submitManualBlacklist('${item.name}')" class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors whitespace-nowrap">
+                            <i class="fa-solid fa-user-slash mr-1"></i> เพิ่มเข้าบัญชีดำ
+                        </button>
                     </div>
                 `;
             }
         }
 
-        function toggleBlacklist(name, status) {
-            const reasonInput = document.getElementById('reasonInput');
-            const customReason = reasonInput ? reasonInput.value.trim() : "";
-            toggleBlacklistWithReason(name, status, customReason);
-        }
-
-        function toggleBlacklistWithReason(name, status, customReason) {
-            const item = deliveryData.find(d => d.name === name);
-            if (item) {
-                let logReason = "";
-                if (status) {
-                    logReason = customReason || "ระบุเหตุผลโดยผู้ดูแลระบบ";
-                    item.isBlacklisted = true;
-                    item.blacklistReason = logReason;
-                } else {
-                    logReason = "ปลดล็อคออกจากบัญชีดำ";
-                    item.isBlacklisted = false;
-                    item.blacklistReason = "";
-                }
-
-                const now = new Date();
-                const timeStr = now.toLocaleDateString('th-TH') + ' ' + now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-                
-                auditLogs.unshift({
-                    id: Date.now(),
-                    time: timeStr,
-                    name: name,
-                    tracking: "-",
-                    action: status ? "BLACKLIST" : "UNBLACKLIST",
-                    reason: logReason,
-                    admin: "Admin System"
-                });
-
-                saveToLocalStorage();
-                checkRisk();
-            }
+        function submitManualBlacklist(name) {
+            const reasonInput = document.getElementById('blacklistReasonInput');
+            const reason = reasonInput ? reasonInput.value.trim() : "";
+            toggleBlacklistWithReason(name, true, reason || "ระบุเหตุผลโดยผู้ดูแลระบบ");
         }
 
         function renderUserAuditLogs(name) {
             const tbody = document.getElementById('userAuditLogBody');
-            const logs = auditLogs.filter(l => l.name === name);
+            const userLogs = auditLogs.filter(log => log.name === name);
 
-            if (logs.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="p-3 text-center text-slate-400">ยังไม่มีประวัติกิจกรรมสำหรับรายชื่อนี้</td></tr>`;
+            if (userLogs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-400 text-xs">ยังไม่มีประวัติกิจกรรมสำหรับผู้รับรายนี้</td></tr>`;
                 return;
             }
 
-            tbody.innerHTML = logs.map(l => {
-                let badgeClass = "text-slate-600";
-                let label = l.action;
-                if (l.action === 'DELIVERY_SUCCESS') { badgeClass = "text-emerald-600 font-bold"; label = "📦 จัดส่งสำเร็จ"; }
-                if (l.action === 'DELIVERY_FAILED') { badgeClass = "text-rose-600 font-bold"; label = "⚠️ ตีกลับ/ล้มเหลว"; }
-                if (l.action === 'BLACKLIST') { badgeClass = "text-rose-900 font-bold"; label = "⛔ ติดบัญชีดำ"; }
-                if (l.action === 'UNBLACKLIST') { badgeClass = "text-indigo-600 font-bold"; label = "🔓 ปลดล็อค"; }
+            tbody.innerHTML = userLogs.map(log => {
+                let badgeClass = "bg-slate-100 text-slate-700";
+                if (log.action === "DELIVERY_SUCCESS") badgeClass = "bg-emerald-100 text-emerald-700";
+                if (log.action === "DELIVERY_FAILED") badgeClass = "bg-rose-100 text-rose-700";
+                if (log.action === "BLACKLIST_ADD") badgeClass = "bg-rose-900 text-white";
+                if (log.action === "BLACKLIST_REMOVE") badgeClass = "bg-blue-100 text-blue-700";
 
                 return `
-                    <tr class="hover:bg-slate-50">
-                        <td class="p-2.5 text-slate-500">${l.time}</td>
-                        <td class="p-2.5 font-mono text-slate-700 font-semibold">${l.tracking || '-'}</td>
-                        <td class="p-2.5 ${badgeClass}">${label}</td>
-                        <td class="p-2.5 text-slate-700">${l.reason}</td>
-                        <td class="p-2.5 text-slate-500">${l.admin}</td>
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="p-2.5 whitespace-nowrap font-mono text-[11px] text-slate-500">${log.time}</td>
+                        <td class="p-2.5 font-mono text-[11px] text-indigo-600 font-semibold">${log.tracking}</td>
+                        <td class="p-2.5"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${badgeClass}">${log.action}</span></td>
+                        <td class="p-2.5 text-slate-700">${log.reason}</td>
+                        <td class="p-2.5 text-slate-500">${log.admin}</td>
                         <td class="p-2.5 text-center">
-                            <button onclick="deleteAuditLog(${l.id})" class="text-xs text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-2 py-1 rounded transition-colors" title="ยกเลิกรายการนี้เพื่อดึงยอดกลับ">
+                            <button onclick="undoAuditLog(${log.id})" class="text-rose-600 hover:text-rose-800 text-[11px] font-semibold px-2 py-1 bg-rose-50 rounded hover:bg-rose-100 transition-colors">
                                 <i class="fa-solid fa-rotate-left mr-1"></i> ยกเลิก
                             </button>
                         </td>
@@ -641,55 +614,173 @@
             }).join('');
         }
 
+        function undoAuditLog(logId) {
+            const logIndex = auditLogs.findIndex(l => l.id === logId);
+            if (logIndex === -1) return;
+
+            const log = auditLogs[logIndex];
+            const item = deliveryData.find(d => d.name === log.name);
+
+            if (confirm(`คุณต้องการยกเลิกรายการ "${log.reason}" ของ ${log.name} ใช่หรือไม่?`)) {
+                if (item) {
+                    if (log.action === "DELIVERY_SUCCESS") {
+                        item.total = Math.max(0, item.total - 1);
+                        item.success = Math.max(0, item.success - 1);
+                        recalculateRiskScore(item);
+                    } else if (log.action === "DELIVERY_FAILED") {
+                        item.total = Math.max(0, item.total - 1);
+                        item.failed = Math.max(0, item.failed - 1);
+                        recalculateRiskScore(item);
+                    } else if (log.action === "BLACKLIST_ADD") {
+                        item.isBlacklisted = false;
+                        item.blacklistReason = "";
+                    } else if (log.action === "BLACKLIST_REMOVE") {
+                        item.isBlacklisted = true;
+                        item.blacklistReason = "คืนค่าสถานะก่อนหน้า";
+                    }
+                }
+
+                auditLogs.splice(logIndex, 1);
+                saveToLocalStorage();
+                if (currentSearchedName === log.name) {
+                    checkRisk();
+                } else {
+                    updateDashboard();
+                }
+            }
+        }
+
         function updateDashboard() {
             const totalReceivers = deliveryData.length;
             const totalDeliveries = deliveryData.reduce((sum, item) => sum + item.total, 0);
             const totalFailed = deliveryData.reduce((sum, item) => sum + item.failed, 0);
-            const failRate = totalDeliveries > 0 ? ((totalFailed / totalDeliveries) * 100).toFixed(1) : 0;
+            const failRate = totalDeliveries > 0 ? ((totalFailed / totalDeliveries) * 100).toFixed(1) : "0.0";
             const blacklistedCount = deliveryData.filter(item => item.isBlacklisted).length;
 
-            document.getElementById('stat-total-receivers').innerText = totalReceivers.toLocaleString() + ' ราย';
-            document.getElementById('stat-total-deliveries').innerText = totalDeliveries.toLocaleString() + ' ชิ้น';
-            document.getElementById('stat-total-failed').innerText = totalFailed.toLocaleString() + ' ชิ้น';
+            document.getElementById('stat-total-receivers').innerText = totalReceivers + ' ราย';
+            document.getElementById('stat-total-deliveries').innerText = totalDeliveries + ' ชิ้น';
+            document.getElementById('stat-total-failed').innerText = totalFailed + ' ชิ้น';
             document.getElementById('stat-fail-rate').innerText = failRate + '%';
             document.getElementById('stat-blacklisted-count').innerText = blacklistedCount + ' ราย';
 
+            renderGlobalAuditLog();
+        }
+
+        function renderGlobalAuditLog() {
             const tbody = document.getElementById('globalAuditLogBody');
+
             if (auditLogs.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="p-3 text-center text-slate-400">ยังไม่มีประวัติกิจกรรมในระบบ</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-400 text-xs">ยังไม่มีประวัติกิจกรรมในระบบ</td></tr>`;
                 return;
             }
 
-            tbody.innerHTML = auditLogs.map(l => `
-                <tr class="hover:bg-slate-50">
-                    <td class="p-3 text-slate-500">${l.time}</td>
-                    <td class="p-3 font-bold text-slate-800">${l.name}</td>
-                    <td class="p-3 font-mono text-slate-700 font-semibold">${l.tracking || '-'}</td>
-                    <td class="p-3 font-bold">${l.action}</td>
-                    <td class="p-3 text-slate-700">${l.reason}</td>
-                    <td class="p-3 text-slate-500">${l.admin}</td>
-                    <td class="p-3 text-center">
-                        <button onclick="deleteAuditLog(${l.id})" class="text-xs text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-2.5 py-1 rounded transition-colors">
-                            <i class="fa-solid fa-rotate-left mr-1"></i> ยกเลิก
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = auditLogs.map(log => {
+                let badgeClass = "bg-slate-100 text-slate-700";
+                if (log.action === "DELIVERY_SUCCESS") badgeClass = "bg-emerald-100 text-emerald-700";
+                if (log.action === "DELIVERY_FAILED") badgeClass = "bg-rose-100 text-rose-700";
+                if (log.action === "BLACKLIST_ADD") badgeClass = "bg-rose-900 text-white";
+                if (log.action === "BLACKLIST_REMOVE") badgeClass = "bg-blue-100 text-blue-700";
+
+                return `
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="p-3 font-mono text-[11px] text-slate-500">${log.time}</td>
+                        <td class="p-3 font-bold text-slate-800">${log.name}</td>
+                        <td class="p-3 font-mono text-[11px] text-indigo-600 font-semibold">${log.tracking}</td>
+                        <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${badgeClass}">${log.action}</span></td>
+                        <td class="p-3 text-slate-700">${log.reason}</td>
+                        <td class="p-3 text-slate-500">${log.admin}</td>
+                        <td class="p-3 text-center">
+                            <button onclick="undoAuditLog(${log.id})" class="text-rose-600 hover:text-rose-800 text-[11px] font-semibold px-2 py-1 bg-rose-50 rounded hover:bg-rose-100 transition-colors">
+                                <i class="fa-solid fa-rotate-left mr-1"></i> ยกเลิก
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        /* --- ฟังก์ชันดาวน์โหลดข้อมูลสถิติลูกค้าล่าสุดเป็น CSV --- */
+        function exportCustomerDataCSV() {
+            if (!deliveryData || deliveryData.length === 0) {
+                alert("ไม่พบข้อมูลลูกค้าในระบบ");
+                return;
+            }
+
+            // UTF-8 BOM เพื่อให้เปิดใน Microsoft Excel แล้วภาษาไทยอ่านออกชัวร์ 100%
+            let csvContent = "\uFEFF"; 
+            
+            // Header หัวตาราง
+            const headers = [
+                "ชื่อผู้รับ", 
+                "จัดส่งทั้งหมด (ชิ้น)", 
+                "ส่งสำเร็จ (ชิ้น)", 
+                "ตีกลับ/ล้มเหลว (ชิ้น)", 
+                "คะแนนความเสี่ยง (%)", 
+                "ระดับความเสี่ยง", 
+                "ติดบัญชีดำ", 
+                "สาเหตุการติดบัญชีดำ"
+            ];
+            csvContent += headers.join(",") + "\n";
+
+            // แปลงข้อมูลลูกค้าปัจจุบันลง CSV
+            deliveryData.forEach(item => {
+                const riskText = item.isBlacklisted ? "ติดบัญชีดำ" : (item.risk === 2 ? "ความเสี่ยงสูง" : (item.risk === 1 ? "ความเสี่ยงปานกลาง" : "ความเสี่ยงต่ำ"));
+                const isBlacklistedText = item.isBlacklisted ? "ใช่" : "ไม่ใช่";
+                const scorePct = (item.score * 100).toFixed(1) + "%";
+                const safeName = `"${item.name.replace(/"/g, '""')}"`;
+                const safeReason = item.blacklistReason ? `"${item.blacklistReason.replace(/"/g, '""')}"` : '""';
+
+                const row = [
+                    safeName,
+                    item.total,
+                    item.success,
+                    item.failed,
+                    scorePct,
+                    `"${riskText}"`,
+                    `"${isBlacklistedText}"`,
+                    safeReason
+                ];
+
+                csvContent += row.join(",") + "\n";
+            });
+
+            // สร้างลิงก์ดาวน์โหลด
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            
+            const today = new Date().toISOString().slice(0, 10);
+            a.href = url;
+            a.download = `รายงานสถิติลูกค้า_ปัจจุบัน_${today}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
 
         function clearLocalStorageData() {
-            if (confirm('คุณต้องการรีเซ็ตข้อมูลทั้งหมดกลับเป็นค่าเริ่มต้นหรือไม่?')) {
+            if (confirm("คุณแน่ใจหรือไม่ว่าต้องการรีเซ็ตระบบ? ข้อมูลบันทึกประวัติจะถูกลบทั้งหมด และคืนค่าข้อมูลเริ่มต้น")) {
                 localStorage.removeItem('deliveryData_v6');
                 localStorage.removeItem('auditLogs_v6');
                 initData();
                 updateDashboard();
                 if (currentSearchedName) checkRisk();
+                alert("รีเซ็ตระบบเรียบร้อยแล้ว");
             }
         }
 
-        initData();
-        document.getElementById('receiverInput').addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') checkRisk();
+        // Initialize on Load
+        document.addEventListener('DOMContentLoaded', () => {
+            initData();
+
+            const input = document.getElementById('receiverInput');
+            if (input) {
+                input.addEventListener('keyup', (e) => {
+                    if (e.key === 'Enter') {
+                        checkRisk();
+                    }
+                });
+            }
         });
     </script>
 </body>
