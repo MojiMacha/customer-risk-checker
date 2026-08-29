@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>พนักงานส่ง - Delivery Risk Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-100 min-h-screen pb-12">
+
+    <!-- Header Navigation -->
+    <header class="bg-indigo-900 text-white p-4 shadow-lg flex justify-between items-center max-w-6xl mx-auto rounded-b-xl">
+        <h1 class="font-bold text-lg"><i class="fa-solid fa-motorcycle text-amber-400"></i> ระบบพนักงานขนส่ง</h1>
+        <div class="space-x-2 text-sm">
+            <a href="driver.html" class="bg-indigo-700 px-3 py-1.5 rounded-lg font-bold">พนักงานส่ง</a>
+            <a href="admin.html" class="text-indigo-200 hover:text-white px-3 py-1.5">แอดมิน</a>
+            <a href="customer.html" class="text-indigo-200 hover:text-white px-3 py-1.5">ลูกค้า</a>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 mt-6 space-y-6">
+        <!-- ช่องค้นหา -->
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+            <label class="block font-bold text-slate-800 mb-2">ค้นหาชื่อผู้รับ:</label>
+            <div class="flex gap-2">
+                <input type="text" id="search-input" placeholder="พิมพ์ชื่อ เช่น ธณกร..." class="flex-1 border p-3 rounded-xl">
+                <button onclick="performSearch()" class="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold">ตรวจสอบ</button>
+            </div>
+        </div>
+
+        <!-- การ์ดแสดงผล (แบบภาพดีไซน์) -->
+        <div id="risk-result-card" class="hidden bg-white p-6 rounded-2xl shadow-md border border-slate-200 space-y-6">
+            <div class="flex justify-between items-center border-b pb-4">
+                <h2 id="result-name" class="text-3xl font-extrabold text-slate-800"></h2>
+                <span id="result-badge" class="px-4 py-1 rounded-full text-xs font-bold"></span>
+            </div>
+
+            <!-- สถิติ 3 ช่อง -->
+            <div class="grid grid-cols-3 gap-4 text-center">
+                <div class="bg-slate-50 p-4 rounded-xl">
+                    <span class="text-xs text-slate-500">จัดส่งทั้งหมด</span>
+                    <p id="result-total" class="text-2xl font-bold text-slate-800"></p>
+                </div>
+                <div class="bg-emerald-50 p-4 rounded-xl">
+                    <span class="text-xs text-emerald-700">สำเร็จ</span>
+                    <p id="result-success" class="text-2xl font-bold text-emerald-600"></p>
+                </div>
+                <div class="bg-rose-50 p-4 rounded-xl">
+                    <span class="text-xs text-rose-700">ตีกลับ / ล้มเหลว</span>
+                    <p id="result-failed" class="text-2xl font-bold text-rose-600"></p>
+                </div>
+            </div>
+
+            <!-- Risk Bar -->
+            <div>
+                <div class="flex justify-between text-xs font-bold mb-1">
+                    <span>คะแนนดัชนีความเสี่ยง (Risk Score)</span>
+                    <span id="result-percent">0%</span>
+                </div>
+                <div class="w-full bg-slate-100 rounded-full h-3.5 overflow-hidden">
+                    <div id="result-bar" class="h-full bg-emerald-500 w-0 transition-all"></div>
+                </div>
+            </div>
+
+            <!-- บันทึกผล -->
+            <div class="border p-4 rounded-xl bg-slate-50 space-y-3">
+                <h4 class="font-bold text-sm">บันทึกผลการจัดส่งล่าสุด</h4>
+                <input type="text" id="order-id" placeholder="เลขพัสดุ / Order ID" class="w-full p-2.5 border rounded-xl text-sm">
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="record('SUCCESS')" class="bg-emerald-600 text-white font-bold py-2.5 rounded-xl">บันทึก: ส่งสำเร็จ (+1)</button>
+                    <button onclick="record('FAILED')" class="bg-rose-600 text-white font-bold py-2.5 rounded-xl">บันทึก: ตีกลับ / ล้มเหลว (+1)</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- เรียกใช้ Script แยกไฟล์ -->
+    <script src="js/data.js"></script>
+    <script src="js/driver.js"></script>
+</body>
+</html>
